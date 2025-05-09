@@ -1,0 +1,4 @@
+2025-05-09 18:35:07 | unimol_tools/weights/weighthub.py | 32 | INFO | Uni-Mol Tools | Weights will be downloaded to default directory: /root/soft/miniconda3/envs/mlxcjjbao/lib/python3.10/site-packages/unimol_tools/weights
+2025-05-09 18:35:07 | unimol_tools/weights/weighthub.py | 49 | INFO | Uni-Mol Tools | Downloading mol_pre_all_h_220816.pt
+2025-05-09 18:35:12 | unimol_tools/weights/weighthub.py | 32 | INFO | Uni-Mol Tools | Weights will be downloaded to default directory: /root/soft/miniconda3/envs/mlxcjjbao/lib/python3.10/site-packages/unimol_tools/weights
+2025-05-09 18:35:12 | unimol_tools/weights/weighthub.py | 49 | INFO | Uni-Mol Tools | Downloading mol.dict.txt
