@@ -1,12 +1,19 @@
 '''
 
 '''
+# in-built modules
 import os
 import unittest
 
+# third-party modules
 import numpy as np
-from unimol_tools import UniMolRepr
+try:
+    from unimol_tools import UniMolRepr
+except ImportError:
+    print('`unimol_tools` is not installed. '
+          'Please install it with `pip install unimol_tools`.')
 
+# local modules
 from UniMolXC.abacus.control import AbacusJob
 from UniMolXC.geometry.cluster import clustergen
 from UniMolXC.physics.database import convert_l_unit

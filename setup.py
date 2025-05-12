@@ -12,7 +12,6 @@ setup(
     install_requires=[
         "numpy>=1.20.0",
         "matplotlib>=3.4.0",
-        "unimol_tools>=0.1.0",
         "ase>=3.22.0"
     ],
     python_requires=">=3.10",
