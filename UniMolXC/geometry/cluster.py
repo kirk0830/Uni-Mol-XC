@@ -163,7 +163,8 @@ def _clustergen_impl(pos, i, rc, direct, cell, elem):
     print(f'func clustergen: use nsupercell {nsupercell}')
     pos = np.array([[p + np.array([x, y, z]) @ cell.T for p in pos]
         for x, y, z in it.product(*[range(n) for n in nsupercell])]).reshape(-1, 3)
-    elem = [elem] * np.prod(nsupercell) if elem is not None else None
+    elem = np.array([elem] * np.prod(nsupercell), dtype=str).flatten() \
+        if elem is not None else None
     cell = np.array([c*n for c, n in zip(cell, nsupercell)])
     
     # calculate the distance matrix
