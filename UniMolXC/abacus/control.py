@@ -5,8 +5,11 @@ jobdir
 import os
 import unittest
 
+import numpy as np
+
 from UniMolXC.abacus.inputio import read as read_dftparam
 from UniMolXC.abacus.struio import read_stru as read_stru_
+from UniMolXC.physics.database import convert_l_unit
 
 class AbacusJob:
     
@@ -78,6 +81,11 @@ class AbacusJob:
 
     def __init__(self, jobdir):
         '''initialize the AbacusJob instance'''
+        self.stru = None
+        self.cell = None
+        self.atomic_symbols = None
+        self.atomic_positions = None
+        
         try:
             self.init_as_unfinished(jobdir)
         except FileNotFoundError:
@@ -96,6 +104,62 @@ class AbacusJob:
             if cache:
                 self.stru = stru
         return stru
+
+    def get_cell(self, unit='angstrom', reload_=False):
+        '''get the cell from the jobdir'''
+        if self.cell is not None and not reload_:
+            return self.cell
+
+        if self.stru is None:
+            raise RuntimeError('the function `read_stru` should '
+                               'be called with `cache=True` before calling '
+                               'this function.')
+        
+        self.cell = np.array(self.stru['lat']['vec']) * \
+                convert_l_unit(self.stru['lat']['const'], 
+                            unit_from='bohr', 
+                            unit_to=unit)
+        
+        return self.cell
+
+    def get_atomic_positions(self, unit='angstrom', reload_=False):
+        '''get the atomic positions from the jobdir'''
+        if self.atomic_positions is not None and not reload_:
+            return self.atomic_positions
+        
+        if self.stru is None:
+            raise RuntimeError('the function `read_stru` should '
+                               'be called with `cache=True` before calling '
+                               'this function.')
+        
+        pos = np.array([atom['coord'] 
+                        for s in self.stru['species'] 
+                        for atom in s['atom']])
+        factor = 1 if self.stru['coord_type'].startswith('Cartesian') \
+            else self.stru['lat']['const']
+        factor *= 1 if 'angstrom' in self.stru['coord_type'] \
+            else convert_l_unit(1, 'bohr', 'angstrom')
+        pos = pos * factor
+        self.atomic_positions = pos.reshape(-1, 3) * \
+            convert_l_unit(1, 'angstrom', unit)
+        
+        return self.atomic_positions
+
+    def get_atomic_symbols(self, reload_=False):
+        '''get the atomic symbols from the jobdir'''
+        if self.atomic_symbols is not None and not reload_:
+            return self.atomic_symbols
+        
+        if self.stru is None:
+            raise RuntimeError('the function `read_stru` should '
+                               'be called with `cache=True` before calling '
+                               'this function.')
+        
+        elem = [[s['symbol']] * s['natom'] for s in self.stru['species']]
+        elem = [item for sublist in elem for item in sublist]
+        self.atomic_symbols = elem
+        
+        return self.atomic_symbols
 
 class AbacusJobTest(unittest.TestCase):
     

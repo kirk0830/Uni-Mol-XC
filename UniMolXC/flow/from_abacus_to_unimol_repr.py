@@ -16,7 +16,6 @@ except ImportError:
 # local modules
 from UniMolXC.abacus.control import AbacusJob
 from UniMolXC.geometry.cluster import clustergen
-from UniMolXC.physics.database import convert_l_unit
 
 def run(jobdir, 
         iat, 
@@ -47,6 +46,7 @@ def run(jobdir,
     dict
         The UniMol representation of the structure.
     '''
+    # simple sanity check
     assert isinstance(iat, list)
     assert all(isinstance(i, int) for i in iat)
     assert isinstance(rc, (list, float, int))
@@ -54,30 +54,15 @@ def run(jobdir,
     assert len(iat) == len(rc)
     
     job = AbacusJob(jobdir)
-    stru = job.read_stru(cache=True)
-    
-    # unpack the stru
-    cell = np.array(stru['lat']['vec']) * \
-        convert_l_unit(stru['lat']['const'], 
-                       unit_from='bohr', 
-                       unit_to='angstrom')
-    
-    elem = [[s['symbol']] * s['natom'] for s in stru['species']]
-    elem = [item for sublist in elem for item in sublist]
-    
-    pos = np.array([atom['coord'] for s in stru['species'] for atom in s['atom']])
-    factor = 1 if stru['coord_type'].startswith('Cartesian') else stru['lat']['const']
-    factor *= 1 if 'angstrom' in stru['coord_type'] \
-        else convert_l_unit(1, 'bohr', 'angstrom')
-    pos = pos * factor
-    pos = pos.reshape(-1, 3)
-    
+    job.read_stru(cache=True)
+        
     # generate clusters
-    clusters = [clustergen(pos=pos,
+    clusters = [clustergen(cell=job.get_cell(unit='angstrom'),
+                           elem=job.get_atomic_symbols(),
+                           pos=job.get_atomic_positions(unit='angstrom'),
                            direct=False,
                            i=i,
-                           rc=r,
-                           cell=cell)
+                           rc=r)
                 for i, r in zip(iat, rc)]
     
     return UniMolRepr(data_type='molecule', 
@@ -96,7 +81,7 @@ class TestAbacusToUniMolRepr(unittest.TestCase):
     def test_run(self):
         # from an unfinished ABACUS job
         jobdir = os.path.join(self.testfiles, 'scf-unfinished')
-        result = run(jobdir, [0], 10)
+        result = run(jobdir, [0], 4.0)
         print(result)
 
 if __name__ == '__main__':
