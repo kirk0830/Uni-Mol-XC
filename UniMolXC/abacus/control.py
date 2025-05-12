@@ -4,12 +4,15 @@ jobdir
 '''
 import os
 import unittest
+import uuid
+import shutil
 
 import numpy as np
 
 from UniMolXC.abacus.inputio import read as read_dftparam
 from UniMolXC.abacus.struio import read_stru as read_stru_
-from UniMolXC.physics.database import convert_l_unit
+from UniMolXC.abacus.logio import read_energy
+from UniMolXC.physics.database import convert_length_unit
 
 class AbacusJob:
     
@@ -116,7 +119,7 @@ class AbacusJob:
                                'this function.')
         
         self.cell = np.array(self.stru['lat']['vec']) * \
-                convert_l_unit(self.stru['lat']['const'], 
+                convert_length_unit(self.stru['lat']['const'], 
                             unit_from='bohr', 
                             unit_to=unit)
         
@@ -138,10 +141,10 @@ class AbacusJob:
         factor = 1 if self.stru['coord_type'].startswith('Cartesian') \
             else self.stru['lat']['const']
         factor *= 1 if 'angstrom' in self.stru['coord_type'] \
-            else convert_l_unit(1, 'bohr', 'angstrom')
+            else convert_length_unit(1, 'bohr', 'angstrom')
         pos = pos * factor
         self.atomic_positions = pos.reshape(-1, 3) * \
-            convert_l_unit(1, 'angstrom', unit)
+            convert_length_unit(1, 'angstrom', unit)
         
         return self.atomic_positions
 
@@ -160,6 +163,19 @@ class AbacusJob:
         self.atomic_symbols = elem
         
         return self.atomic_symbols
+
+    def to_deepmd(self, path_=None):
+        '''convert the jobdir to a DeePMD-kit format'''
+        try:
+            from dpdata import System
+        except ImportError:
+            raise ImportError('DPData is not installed. '
+                              'Please install it with `pip install dpdata`.')
+        
+        mysys = System(file_name=self.fn_stru, fmt='abacus/stru')
+        if path_:
+            mysys.to(fmt='deepmd', file_name=path_)
+        return mysys
 
 class AbacusJobTest(unittest.TestCase):
     
@@ -185,6 +201,24 @@ class AbacusJobTest(unittest.TestCase):
         self.assertEqual(job.fn_stru_cif, os.path.join(job.outdir, 'STRU.cif'))
         self.assertEqual(job.fn_istate, os.path.join(job.outdir, 'istate.info'))
         self.assertTrue(job.complete)
-        
+    
+    def test_to_deepmd(self):
+        try:
+            import dpdata
+        except ImportError:
+            # skip the test if dpdata is not installed
+            self.skipTest('DPData is not installed. The unittest of function '
+                          '`to_deepmd` is skipped. '
+                          'Please install it with `pip install dpdata`.')
+        jobdir = os.path.join(self.testfiles, 'scf-finished')
+        job = AbacusJob(jobdir)
+        dppath = str(uuid.uuid4())
+        os.makedirs(dppath, exist_ok=True)
+        job.to_deepmd(dppath)
+        self.assertTrue(os.path.exists(dppath))
+        self.assertTrue(all(os.path.exists(os.path.join(dppath, f))
+                        for f in ['box.raw', 'coord.raw', 'type_map.raw', 'type.raw']))
+        shutil.rmtree(dppath)
+
 if __name__ == '__main__':
     unittest.main()
