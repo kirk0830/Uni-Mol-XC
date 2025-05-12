@@ -278,15 +278,17 @@ def read_stru(fpath):
 import unittest
 import os
 
-class _TestStruIO(unittest.TestCase):
+class TestStruIO(unittest.TestCase):
+
+    def setUp(self):
+        testfiles = os.path.dirname(__file__)
+        testfiles = os.path.dirname(testfiles)
+        self.testfiles = os.path.abspath(os.path.join(testfiles, 'testfiles'))
 
     def test_read_stru(self):
-        import os
-        here = os.path.dirname(os.path.abspath(__file__))
-        testfiles = os.path.join(here, 'testfiles')
 
         #stru = read_stru('./testfiles/STRU.test')
-        stru = read_stru(os.path.join(testfiles, 'STRU.test'))
+        stru = read_stru(os.path.join(self.testfiles, 'STRU.test'))
 
         self.assertEqual(stru['lat']['const'], 20.0)
         self.assertEqual(stru['lat']['vec'],
@@ -327,14 +329,9 @@ class _TestStruIO(unittest.TestCase):
                          ('Cartesian', [0.5, 0.5, 0.5]))
         self.assertEqual(stru['species'][2]['atom'][0]['mag'], 0.5)
 
-
     def test_write_stru(self):
-        import os
-        here = os.path.dirname(os.path.abspath(__file__))
-        testfiles = os.path.join(here, 'testfiles')
 
-        #jobdir = './testfiles/'
-        jobdir = testfiles
+        jobdir = self.testfiles
 
         stru = {
                 'lat': {

@@ -321,8 +321,8 @@ class TestCluster(unittest.TestCase):
             i=i, 
             rc=rc, 
             cell=np.array(cellpar_to_cell([3, 3, 3, 60, 60, 60])))
-        mycluster = build_ase_atoms('Pt', cluster)
-        visualize(mycluster, fn='cluster.xyz', show=False)
+        # mycluster = build_ase_atoms('Pt', cluster)
+        # visualize(mycluster, fn='cluster.xyz', show=False)
         self.assertTrue(isinstance(cluster, np.ndarray))
         self.assertTrue(cluster.ndim == 2)
         nat, nd = cluster.shape
