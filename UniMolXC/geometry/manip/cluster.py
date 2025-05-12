@@ -7,7 +7,6 @@ import itertools as it
 
 import numpy as np
 from ase.geometry import cellpar_to_cell
-from UniMolXC.geometry.visualize import build_ase_atoms, visualize
 
 def _pbcdist_impl(r1, r2, direct, cell):
     '''see func pbcdist'''
