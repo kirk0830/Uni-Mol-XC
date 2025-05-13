@@ -10,3 +10,5 @@ python3 ./UniMolXC/abacus/struio.py -v
 # geometry
 python3 ./UniMolXC/geometry/manip/cluster.py -v
 
+# network
+python3 ./UniMolXC/network/trainer.py -v
