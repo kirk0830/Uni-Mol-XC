@@ -3,7 +3,7 @@ this script places the common physical constants, and provide the
 unit conversion functions
 '''
 
-def convert_e_unit(e, unit_from='eV', unit_to='Ry'):
+def convert_energy_unit(e, unit_from='eV', unit_to='Ry'):
     '''convert the energy unit'''
     # factor based on eV
     factor = {'eV': 1.0, 
@@ -19,7 +19,7 @@ def convert_e_unit(e, unit_from='eV', unit_to='Ry'):
         raise ValueError(f'unit_to {unit_to} not supported')
     return e / factor[unit_from] * factor[unit_to]
 
-def convert_l_unit(l, unit_from='nm', unit_to='bohr'):
+def convert_length_unit(l, unit_from='nm', unit_to='bohr'):
     '''convert the length unit'''
     # factor based on nm
     factor = {'nm': 1.0, 

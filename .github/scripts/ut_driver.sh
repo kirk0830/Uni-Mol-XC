@@ -7,8 +7,8 @@ python3 ./UniMolXC/abacus/control.py -v
 python3 ./UniMolXC/abacus/inputio.py -v
 python3 ./UniMolXC/abacus/struio.py -v
 
-# flow
-
-
 # geometry
-python3 ./UniMolXC/geometry/cluster.py -v
+python3 ./UniMolXC/geometry/manip/cluster.py -v
+
+# network
+python3 ./UniMolXC/network/trainer.py -v

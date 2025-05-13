@@ -23,6 +23,23 @@ jobs:
           activate-environment: mlxc
           use-only-tar-bz2: true
 
+      - name: Install dependencies - DeePMD-kit
+        run: |
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install deepmd-kit
+      
+      - name: Install dependencies - DPData
+        run: |
+          pip install dpdata
+
+      - name: Install dependencies - Huggingface
+        run: |
+          pip install huggingface_hub
+
+      - name: Install dependencies - UniMol
+        run: |
+          pip install unimol_tools --upgrade
+
       - name: Install the package
         run: |
           pip install .

@@ -10,9 +10,9 @@ setup(
     url="https://github.com/BariumOxide13716/Uni-Mol-XC",
     packages=find_packages(include=["UniMolXC", "UniMolXC.*"]),
     install_requires=[
-        "numpy>=1.20.0",
-        "matplotlib>=3.4.0",
-        "ase>=3.22.0"
+        "numpy",
+        "matplotlib",
+        "ase"
     ],
     python_requires=">=3.10",
     classifiers=[
