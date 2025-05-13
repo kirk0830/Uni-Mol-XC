@@ -11,7 +11,8 @@ try:
     from unimol_tools import UniMolRepr
 except ImportError:
     raise ImportError('unimol_tools is not installed. '
-                      'Please install it with `pip install unimol_tools`.')
+                      'See https://github.com/deepmodeling/Uni-Mol/tree/main/unimol_tools '
+                      'for more information.')
 
 # local modules
 from UniMolXC.abacus.control import AbacusJob

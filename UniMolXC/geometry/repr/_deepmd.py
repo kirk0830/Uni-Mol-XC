@@ -18,7 +18,7 @@ except ImportError:
                       'See https://docs.deepmodeling.com/projects/deepmd/en/stable/getting-started/install.html#install-with-conda')
 from UniMolXC.abacus.control import AbacusJob
 
-def calculate(jobdir,
+def generate(jobdir,
               fmodel,
               head=None):
     '''
@@ -57,7 +57,7 @@ class TestAbacusToDeePMDRepr(unittest.TestCase):
         self.testfiles = os.path.abspath(os.path.join(testfiles, 'testfiles'))
     
     @unittest.skip('Skip this test due to the error raised by the DeePMD-kit')
-    def test_calculate(self):
+    def test_generate(self):
         try:
             import deepmd
         except ImportError:
@@ -71,7 +71,7 @@ class TestAbacusToDeePMDRepr(unittest.TestCase):
         fmodel = os.path.join(self.testfiles, 'OC_10M.pb')
         jobdir = os.path.join(self.testfiles, 'scf-finished')
         # from an finished ABACUS job
-        result = calculate(jobdir, fmodel)
+        result = generate(jobdir, fmodel)
         print(result)
 
 if __name__ == '__main__':
