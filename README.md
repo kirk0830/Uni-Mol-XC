@@ -24,6 +24,9 @@ conda activate mlxc
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install deepmd-kit
 
+# install DPData
+pip install dpdata
+
 # install Huggingface
 pip install huggingface_hub
 

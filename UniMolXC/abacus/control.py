@@ -10,11 +10,69 @@ import shutil
 import numpy as np
 
 from UniMolXC.abacus.inputio import read as read_dftparam
+from UniMolXC.abacus.inputio import write as write_dftparam
 from UniMolXC.abacus.struio import read_stru as read_stru_
+from UniMolXC.abacus.struio import write_stru
+from UniMolXC.abacus.kptio import read as read_kpt
+from UniMolXC.abacus.kptio import write as write_kpt
 from UniMolXC.abacus.logio import read_energy
 from UniMolXC.physics.database import convert_length_unit
 
 class AbacusJob:
+        
+    def build_derived(self, 
+                      jobdir, 
+                      dftparam=None, 
+                      stru=None, 
+                      kpt=None, 
+                      instatiate=False):
+        '''build a derived AbacusJob instance with several parameters
+        changed
+        
+        Parameters
+        ----------
+        jobdir : str
+            the jobdir of the derived job
+        dftparam : dict
+            the dftparam of the derived job
+        stru : dict
+            the structure of the derived job
+        kpt : dict
+            the kpt of the derived job
+        instatiate : bool
+            whether to instantiate the derived job or not
+
+        Returns
+        -------
+        AbacusJob
+            the derived AbacusJob instance
+        '''
+        cwd = os.getcwd()
+        
+        os.makedirs(jobdir, exist_ok=False) # do not allow to overwrite
+        os.chdir(jobdir)
+        
+        dftparam = self.input|dftparam
+        write_dftparam(dftparam, 'INPUT')
+        if self.stru is None:
+            raise RuntimeError('the function `read_stru` should '
+                               'be called with `cache=True` before calling '
+                               'this function.')
+        stru = self.stru|stru
+        write_stru('.', stru)
+        if kpt is None and all([x not in dftparam for x in ['kspacing', 'gamma_only']]):
+            raise RuntimeError('the function `read_kpt` should '
+                               'be called with `cache=True` before calling '
+                               'this function.')
+        if kpt is not None:
+            kpt = self.kpt|kpt
+            write_kpt(kpt, 'KPT')
+        
+        # finally return to the original directory
+        os.chdir(cwd)
+        
+        if instatiate:
+            return AbacusJob(jobdir)
     
     def init_as_unfinished(self, jobdir):
         '''initialize the AbacusJob instance as a raw jobdir'''
@@ -108,6 +166,14 @@ class AbacusJob:
                 self.stru = stru
         return stru
 
+    def read_kpt(self, cache=True):
+        '''read the kpt from the jobdir'''
+        if self.kpt is None:
+            kpt = read_kpt(self.fn_kpt)
+            if cache:
+                self.kpt = kpt
+        return kpt
+
     def get_cell(self, unit='angstrom', reload_=False):
         '''get the cell from the jobdir'''
         if self.cell is not None and not reload_:
@@ -176,6 +242,28 @@ class AbacusJob:
         if path_:
             mysys.to(fmt='deepmd', file_name=path_)
         return mysys
+
+    def run(self, 
+            command, 
+            remote=None):
+        '''
+        run the ABACUS job
+        
+        Parameters
+        ----------
+        command : str
+            the command to run the ABACUS job, such as 
+            `OMP_NUM_THREADS=1 mpirun -np 16 abacus >> out.log`
+        remote : dict
+            the settings to run the ABACUS job on a remote server
+        '''
+        if not remote:
+            cwd = os.getcwd() # backup the current directory
+            os.chdir(self.path)
+            os.system(command)
+            os.chdir(cwd) # return to the original directory
+        else:
+            raise NotImplementedError('remote run is not implemented yet.')
 
 class AbacusJobTest(unittest.TestCase):
     
