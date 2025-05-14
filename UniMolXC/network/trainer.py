@@ -1,3 +1,74 @@
+'''
+Title
+-----
+Local chemical environment incorperated parameterizing XC functionals 
+enabled by machine-learning
+
+Concept
+-------
+The training of machine-learning parameterization on Density Functional
+eXchange-Correlation here only considers re-parameterize the XC
+functionals with known analytical form. What will be solved by the
+machine-learning technique is how to find the best parameters for the
+energy components in the XC functionals chosen. This work is expected
+to parameterize the XC functionals based on the local chemical
+environment, which means the mapping from the local chemical
+environment to the parameterization will be established and that is
+what be learned by the neural network.
+
+Our ultimate goal is to minimize the energy error with respect to one
+golden standard to a negligible level as much as possible, and
+ideally the loss function would be the absolute difference (or its 
+quadratic form) between the exact value and the energy predicted by
+a parameterized XC. 
+
+For simplicity, the parameterization practically done here is linearly
+combining the energy components, whose coefficients are the parameters 
+to be learned and being related with the local chemical environment. 
+For the loss function, a simple implementation can be found in the file 
+`UniMolXC/network/kernel/classical.py`, the function `loss`.
+
+However, what distincts with common machine learning tasks is the label
+is not known: exact values of parameters are not known, but they can
+be found during the training process, somehow similar with the 
+classical way. For more information, please refer to the leading 
+annotation of the file `UniMolXC/network/kernel/classical.py`.
+
+We should note that, it is obvious that the energy components are 
+actually the functionals of the parameters, which means during the 
+training process, in principle one should always keep the parameters 
+and the energy components consistent. 
+
+However, this manner is quite computationally costly, so an alternative
+strategy is to train the parameters with fixed energy components. 
+After some epochs, the energy components will be updated with the
+newly trained parameters, so the loss function of the inner training
+will be changed, as a result. This process will be repeated until the
+loss converges to a certain threshold.
+
+In following codes, we will call the training of parameters with fixed
+energy components as inner training, counterpartly, the outer loop
+will be called the outer training.
+
+Backend
+-------
+In principle the inner training can be done with any machine-learning
+model, but presently a POC is implemented by incorperating with the 
+UniMol, a quite efficient deep-learning framework that can predict the
+properties of molecule, but the drawback is its loss function is not 
+quite readily to be modified. 
+
+For UniMol backend, the training is not proceed in a real two-fold
+manner, instead, it will be proceed in two steps:
+
+1. find the coefficients of the energy components in a given pool in
+   the classical way
+2. use the coefficients as label to train UniMol in one-shot
+
+For the backend built by our own, the training is proceed in the way
+introduced above.
+'''
+
 # built-in modules
 import os
 import logging
@@ -28,31 +99,7 @@ except ImportError:
                       '#install-with-conda')
     
 class XCParameterizationNetTrainer:
-    '''
-    the trainer for XCParameterizationNet.
-    
-    The trainning task of XCParameterizationNet is very computationally
-    costly in general, because it requires the output of XC functionals
-    parameterization always to be consistent with the energy calculated
-    by Density Functional Theory level, Self-Consistent Field (SCF)
-    energy. To reduce the computational cost, we use a two-step training
-    strategy: 
-    
-    1. with a initial guess on the parameterization of XC, we perform
-       once the DFT-SCF, obtain the energy components corresponding to
-       each parameter to be trained.
-    2. with those energy components, we train the XCParameterizationNet
-       such that the loss function which takes the energy difference with
-       the exact (label) value is minimized, as such, we can obtain a
-       new set of parameters for XC functionals. It should be noted that
-       the stop of training of this step needs a arbitrary threshold,
-       in the following implementation, we name it as `inner_train_thr`.
-       Also we set the `inner_train_max_iter` to limit the maximum
-       number of iterations for this step.
-    3. with the newly output parameters, we perform the DFT-SCF again, 
-       get energy components again, and repeat the above two steps until
-       the loss function converges to a certain threshold.
-    '''
+
     def __init__(self, 
                  model):
         '''
@@ -65,15 +112,18 @@ class XCParameterizationNetTrainer:
             that contains the parameters of the model (the way to employ
             other models)
         '''
+        self.model_backend = None
         if isinstance(model, dict):
             # the case that utilize the third-party model
             assert 'model_name' in model
             self.model = UniMolRegressionNet(
                 model_name=model.get('model_name', 'unimolv1'),
                 model_size=model.get('model_size', '84m'))
+            self.model_backend = 'unimol'
         else:
             assert isinstance(model, XCParameterizationNet)
             self.model = model
+            self.model_backend = 'xcpnet'
 
         self.coef_traj = None
         self.loss_traj = None
@@ -144,7 +194,7 @@ class XCParameterizationNetTrainer:
                                 rc=t[e]) 
                      for iat, e in enumerate(j.get_atomic_symbols()) if e in t]
                      # I am not sure what should be the behavior of this function
-                     # when there is no element being defined in the truncation
+                     # when there is no element being defined in the `truncation`
                      # presently the job will be skipped.
                      for t, j in zip(truncation, jobs)]
         return {'atoms': [c[2] for j in clusters for c in j],
@@ -272,9 +322,11 @@ class XCParameterizationNetTrainer:
     
     def train(self,
               dataset,
-              dft_machine,
+              outer_fdft,
+              outer_floss,
               outer_thr=None,
-              outer_thrtyp='energy',
+              outer_maxiter=50,
+              inner_guess=None,
               inner_epochs=10,
               inner_batchsize=16,
               inner_thr=None,
@@ -289,18 +341,71 @@ class XCParameterizationNetTrainer:
         dataset : any
             see function XCParameterizationNet.build_dataset for more
             information
-        dft_machine : str
-            the DFT machine to be used for training.
+        outer_fdft : callable
+            the function for calculating the energy components with
+            given parameters. The function must have two and only
+            two arguments:
+            1. the parameters to be trained, which is a list of list
+               of float, the first order index is the index of the
+               prediction, and the second order index is the index
+               of the energy components.
+            2. the indexing from the parameters first order index to
+               the practical dft cases to calculate the energy components.
+            This function should return a list of list of float, each
+            list indexed by the first order index is the dft cases,
+            and the second order index is the energy components.
+            ```python
+            def f(c, index):
+                # sanity check (suggested)
+                assert isinstance(c, list)
+                assert all(isinstance(i, list) for i in c)
+                assert all(all(isinstance(cij, float) 
+                           for cij in ci) for ci in c)
+                assert isinstance(index, list)
+                assert all(isinstance(i, int) for i in index)
+                
+                return [np.mean(calculate_exc_components(ci, jobdir[i]))
+                            for i, ci in zip(index, c)]
+            ```
+        outer_floss : callable
+            the function for scalarizing the prediction from inner net,
+            so as to estimate the convergence of the outer training. 
+            The function must have two and only two arguments:
+            1. the output of the inner training that will be in the 
+               form of a list of list of float.
+            2. the energy components or the difference of the energy
+               components between the fixed during training and the
+               exact value. 
+            The function should return a float.
+            ```python
+            def f(c, e):
+                # sanity check (suggested)
+                assert isinstance(c, list)
+                assert all(isinstance(i, list) for i in c)
+                assert all(all(isinstance(cij, float) 
+                           for cij in ci) for ci in c)
+                assert isinstance(e, list)
+                assert all(isinstance(i, float) for i in e)
+                return np.mean([np.dot(e[i], c) 
+                                for i, c in zip(index, c)])
+            ```
         outer_thr : float
             the threshold for determining the convergence of the whole
             training.
-        outer_thrtyp : str
-            the type of the threshold for determining the convergence of
-            the whole training. The default is 'energy', which means
-            the threshold is based on the total energy. The other options
-            are:  
-            `energies`: the threshold is based on the energy components
-            `components`: the threshold is based on the parameters
+        outer_maxiter : int
+            the maximum number of iterations for the outer training.
+            Default is 50. If the `outer_thr` is achieved, the
+            training will be stopped earlier than this number.
+        inner_guess : list of list of float
+            the initial guess for the parameters to be trained. This may
+            provide a more reasonable set of energy components, so that
+            the loss function of the outer loop may be minimized more
+            efficiently. If set as not None, then firstly there will be
+            series of DFT calculations with the initial guess parameters
+            performed. If set as None, no DFT will be performed before the
+            first run of inner training. NOTE: users are obliged to check
+            the rationality of the length of the initial guess parameters.
+            The default is None.
         inner_epochs : int
             the number of epochs for the inner training. The default is 10.
         inner_batchsize : int
@@ -323,7 +428,22 @@ class XCParameterizationNetTrainer:
         -------
         
         '''
-        pass
+        if True: # self.model_backend != 'unimol':
+            raise NotImplementedError('The training employing XCParameterizationNet '
+                                      'as the inner training kernel is not implemented yet')
+        loss = np.inf if inner_guess is None else outer_floss(
+            c = self._inner_train_unimol_regression_net(dataset=dataset,
+                                                        inner_epochs=inner_epochs,
+                                                        inner_batchsize=inner_batchsize,
+                                                        prefix=inner_prefix), 
+            e = outer_fdft(inner_guess, np.arange(len(inner_guess)))
+        )
+        
+        
+            
+        
+
+        
         
 class XCParameterizationNetTrainerTest(unittest.TestCase):
     '''
@@ -458,9 +578,20 @@ class XCParameterizationNetTrainerTest(unittest.TestCase):
     @unittest.skip('This is an integrated test, it runs well, so skip it')
     def test_inner_train_unimol_regression_net(self):
         
+        # Step 1: instantiate the trainer
         mytrainer = XCParameterizationNetTrainer(
             model={'model_name': 'unimolv1',
                    'model_size': '84m'})
+        
+        # Step 2: prepare the dataset
+        # NOTE: the cluster center atom always has coordiantes (0,0,0)
+        #       therefore it is possible to identify the atom type of
+        #       the cluster center atom by checking the coordinates:
+        # ```python
+        # center_typ = [atoms[i]
+        # for atoms, coords in zip(dataset['atoms'], dataset['coordinates'])
+        # for i, c in enumerate(coords) if np.allclose(c, [0.0, 0.0, 0.0])]]
+        # ```
         dataset = mytrainer.build_dataset(
             xdata=[os.path.join(self.testfiles, 'scf-unfinished')],
             ydata=[[1.0, 5.0, 0.0]],
@@ -468,6 +599,8 @@ class XCParameterizationNetTrainerTest(unittest.TestCase):
             cluster_truncation={'Zn': 5.0, 'Y': 3.0, 'S': 3.0},
             walk=False
         )
+        
+        # Step 3: train the model and get predictions
         res = mytrainer._inner_train_unimol_regression_net(
             dataset=dataset,
             inner_epochs=2,

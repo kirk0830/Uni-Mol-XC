@@ -12,3 +12,4 @@ python3 ./UniMolXC/geometry/manip/cluster.py -v
 
 # network
 python3 ./UniMolXC/network/trainer.py -v
+python3 ./UniMolXC/network/kernel/classical.py -v
