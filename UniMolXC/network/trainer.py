@@ -74,6 +74,7 @@ import os
 import logging
 import unittest
 import time
+import shutil
 
 # third-party modules
 import numpy as np
@@ -84,7 +85,7 @@ from UniMolXC.geometry.manip.cluster import clustergen
 from UniMolXC.network.kernel.xcpnet import XCParameterizationNet
 try:
     from UniMolXC.network.kernel._unimol import UniMolRegressionNet
-    from UniMolXC.geometry.repr._unimol import generate as unimol_repr
+    from UniMolXC.geometry.repr._unimol import generate_from_abacus as unimol_repr
 except ImportError:
     raise ImportError('unimol_tools is not installed. '
                       'See https://github.com/deepmodeling/Uni-Mol/'
@@ -115,10 +116,11 @@ class XCParameterizationNetTrainer:
         self.model_backend = None
         if isinstance(model, dict):
             # the case that utilize the third-party model
-            assert 'model_name' in model
             self.model = UniMolRegressionNet(
                 model_name=model.get('model_name', 'unimolv1'),
-                model_size=model.get('model_size', '84m'))
+                model_size=model.get('model_size', '84m'),
+                model_restart=model.get('model_restart')
+            )
             self.model_backend = 'unimol'
         else:
             assert isinstance(model, XCParameterizationNet)
@@ -163,43 +165,116 @@ class XCParameterizationNetTrainer:
         '''
         build the dataset in the case that the data arranged like
         ABACUS jobdir. The function will walk through the directories
-        '''
-        assert len(folders) > 0
-        assert len(folders) == len(ydata)
-
-        jobs = [AbacusJob(f) for f in folders]
-        for job in jobs:
-            job.read_stru(cache=True)
-        if truncation is None:
-            assert isinstance(ydata, (list, np.ndarray))
-            assert len(jobs) == len(ydata)
-            return {'atoms': [j.get_atomic_symbols() for j in jobs],
-                    'coordinates': [j.get_atomic_positions() for j in jobs]},\
-                    ydata
-                    
-        # the case that requires the clustergen, ydata should be either
-        # a dict whose keys are element symbols, or a list of list of float
-        assert isinstance(truncation, (list, dict))
-        if isinstance(truncation, dict):
-            truncation = [truncation] * len(jobs)
-        assert all(isinstance(t, dict) for t in truncation)
-        assert len(truncation) == len(jobs)
-        assert len(truncation) == len(ydata)
         
-        clusters = [[clustergen(cell=j.get_cell(unit='angstrom'),
-                                elem=j.get_atomic_symbols(),
-                                pos=j.get_atomic_positions(unit='angstrom'),
-                                direct=False,
-                                i=iat,
-                                rc=t[e]) 
-                     for iat, e in enumerate(j.get_atomic_symbols()) if e in t]
-                     # I am not sure what should be the behavior of this function
-                     # when there is no element being defined in the `truncation`
-                     # presently the job will be skipped.
-                     for t, j in zip(truncation, jobs)]
-        return {'atoms': [c[2] for j in clusters for c in j],
-                'coordinates': [c[0] for j in clusters for c in j]},\
-                [y for y, j in zip(ydata, clusters) for _ in range(len(j))]
+        Parameters
+        ----------
+        folders : str or list of str
+            the root directory of the dataset. If a list, the list
+            should contain the paths to the directories of the dataset.
+        ydata : list of float, list of list of float or list of dict
+            the labels of the dataset. 
+            The case of being the list of float corresponds to the
+            label is a scalar value; 
+            The case of being the list of list of float corresponds
+            to the label is a list of float; 
+            The case of being the list of dict corresponds to the
+            label is element-wise, and the value can also be either
+            a scalar or a list of float.
+        truncation : list of dict or dict
+            the truncation radius of the cluster for each element, 
+            can be specified one for all folders, or one for each.
+            
+        Returns
+        -------
+        xdata : dict
+            the standardized xdata, which contains the following
+            keys:
+            - 'atoms', a list of list of str, contains element symbol
+            - 'coordinates', a list of np.array, for each element,
+               contains the Cartesian coordinates of atoms, the number
+               of lines should be identical with the corresponding
+               element in 'atoms'
+        ydata : array-like
+            the labels of the dataset. The labels should be in the 
+            same order as xdata.
+        '''
+        # sanity check
+        # folders
+        assert all(isinstance(f, str) for f in folders)
+        
+        # ydata
+        assert isinstance(ydata, list)
+        # assert y in ydata: int|float|list|dict
+        assert all(isinstance(y, (int, float)) for y in ydata) or \
+               all(isinstance(y, list) for y in ydata) or \
+               all(isinstance(y, dict) for y in ydata)
+        # assert y in ydata: list[list[int|float]]
+        if isinstance(ydata[0], list):
+            assert all(isinstance(yi, (int, float)) \
+                for y in ydata for yi in y)
+        # assert y in ydata: list[dict[str, int|float|list[int|float]]]
+        if isinstance(ydata[0], dict):
+            assert all(isinstance(k, str) and isinstance(v, (int, float, list)) \
+                for y in ydata for k, v in y.items())
+            assert all(isinstance(v, (int, float)) \
+                for y in ydata for v in y.values()) or \
+                   all(isinstance(v, list) and \
+                       all(isinstance(vi, (int, float)) for vi in v) \
+                for y in ydata for v in y.values())
+        # convert the ydata when ydata is list[int|float] to list[list[int|float]]
+        if isinstance(ydata[0], (int, float)):
+            ydata = [[y] for y in ydata]
+
+        # finally
+        assert len(folders) == len(ydata) > 0
+        
+        # instantiate the AbacusJob
+        myjobs = [AbacusJob(f) for f in folders]
+        for myjob in myjobs:
+            myjob.read_stru(cache=True)
+            
+        # the case that do not require the clustergen
+        if truncation is None:
+            if isinstance(ydata, dict):
+                ydata = list(ydata.values())
+            temp = [(j.get_atomic_symbols(), j.get_atomic_positions()) for j in myjobs]
+            return dict(zip(['atoms', 'coordinates'], list(zip(*temp)))), ydata
+
+        # the case that requires the clustergen
+        # assert truncation: list[dict] or dict
+        assert isinstance(truncation, (list, dict))
+        truncation = [truncation] * len(myjobs) \
+            if isinstance(truncation, dict) else truncation
+        # assert truncation: list[dict]
+        assert all(isinstance(t, dict) for t in truncation)
+        # for each job, the truncation and ydata should be defined
+        assert len(truncation) == len(myjobs) == len(ydata)
+        
+        # let the clusters indexed by [ijob][icluster]
+        clusters = [[clustergen(cell=myjob.get_cell(unit='angstrom'),
+                                elem=myjob.get_atomic_symbols(),
+                                pos =myjob.get_atomic_positions(unit='angstrom'),
+                                i=iat, 
+                                rc=truncate[elem])
+                     for iat, elem in enumerate(myjob.get_atomic_symbols()) \
+                         if (elem in truncate and isinstance(y, list)) or \
+                            (elem in truncate and elem in y)]
+                     for truncate, myjob, y in zip(truncation, myjobs, ydata)]
+
+        # make sure the clusters are not empty
+        assert sum(len(c) for c in clusters) > 0
+
+        # reorganize the ydata
+        if isinstance(ydata[0], list): # either duplicate for each cluster
+            ydata = [y for y, j in zip(ydata, clusters) for _ in range(len(j))]
+        elif isinstance(ydata[0], dict): # or element-wise prepare for each cluster
+            ydata = [y[c['center_typ']] for y, j in zip(ydata, clusters) for c in j]
+        else: # be careful
+            raise TypeError('ydata should have been list[list[int|float]] or '
+                            'list[dict[str, int|float|list[int|float]]]')
+
+        temp = [(c['elem'], c['pos']) for j in clusters for c in j]
+        return dict(zip(['atoms', 'coordinates'], list(zip(*temp)))), ydata
     
     @staticmethod
     def build_dataset_to_coordinates(xstandard, ystandard):
@@ -306,11 +381,10 @@ class XCParameterizationNetTrainer:
                                            prefix=None):
         # a single training step
         prefix = prefix or time.strftime("%Y%m%d-%H%M%S")
-        self.model.train(data=dataset,
-                         epochs=inner_epochs,
-                         batch_size=inner_batchsize,
-                         save_path=f'XCPNTrainer-{prefix}')
-        return self.model.eval(data=dataset)
+        return self.model.train(data=dataset,
+                                epochs=inner_epochs,
+                                batch_size=inner_batchsize,
+                                save_path=f'XCPNTrainer-{prefix}')
     
     def _inner_train_xc_parameterization_net(self,
                                              dataset,
@@ -319,6 +393,14 @@ class XCParameterizationNetTrainer:
                                              save_model=None):
         raise NotImplementedError('The inner training of XCParameterizationNet '
                                   'is not implemented yet')           
+    
+    def _inner_eval(self, dataset):
+        if self.model is None:
+            raise RuntimeError('No backend model is assigned')
+        if self.model_backend != 'unimol':
+            raise NotImplementedError('The evaluation employing XCParameterizationNet '
+                                      'as the inner training kernel is not implemented yet')
+        return self.model.eval(data=dataset)
     
     def train(self,
               dataset,
@@ -468,12 +550,12 @@ class XCParameterizationNetTrainerTest(unittest.TestCase):
         self.assertTrue(isinstance(xdata, dict))
         self.assertTrue('atoms' in xdata)
         self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], list))
+        self.assertTrue(isinstance(xdata['atoms'], tuple))
         self.assertTrue(all(isinstance(job, list) and \
                         all(isinstance(elem, str) for elem in job)
                             for job in xdata['atoms'] ))
         # the label will not be duplicated because there is only one structure
-        self.assertListEqual(ydata, [0.0])
+        self.assertListEqual(ydata, [[0.0]])
 
     def test_bdfa_clustergen(self):
         folders = [os.path.join(self.testfiles, 'scf-finished')]
@@ -490,7 +572,7 @@ class XCParameterizationNetTrainerTest(unittest.TestCase):
         self.assertTrue(isinstance(xdata, dict))
         self.assertTrue('atoms' in xdata)
         self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], list))
+        self.assertTrue(isinstance(xdata['atoms'], tuple))
         self.assertTrue(len(xdata['atoms']) == 2) # two clusters
         self.assertTrue(len(xdata['coordinates']) == 2) # two clusters
         # check the correspondence of length between the atoms and coordinates
@@ -509,7 +591,7 @@ class XCParameterizationNetTrainerTest(unittest.TestCase):
         self.assertTrue(isinstance(xdata, dict))
         self.assertTrue('atoms' in xdata)
         self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], list))
+        self.assertTrue(isinstance(xdata['atoms'], tuple))
         self.assertTrue(len(xdata['atoms']) == 2) # two structures, no cluster generated
         self.assertTrue(len(xdata['coordinates']) == 2)
         # check the correspondence of length between the atoms and coordinates
@@ -532,7 +614,7 @@ class XCParameterizationNetTrainerTest(unittest.TestCase):
         self.assertTrue(isinstance(xdata, dict))
         self.assertTrue('atoms' in xdata)
         self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], list))
+        self.assertTrue(isinstance(xdata['atoms'], tuple))
         # because this time we set the truncation radius for all the elements
         # so the output should be many clusters. The number of atoms of the
         # first structure is 2, and the second is 14, therefore we should have
@@ -562,7 +644,7 @@ class XCParameterizationNetTrainerTest(unittest.TestCase):
         self.assertTrue(isinstance(xdata, dict))
         self.assertTrue('atoms' in xdata)
         self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], list))
+        self.assertTrue(isinstance(xdata['atoms'], tuple))
         # we only define the truncation radius for Zn and Y, therefore only
         # the clusters of these two elements will be generated
         # there are 2 Zn and 4 Y, therefore we should have 6 clusters
@@ -575,13 +657,15 @@ class XCParameterizationNetTrainerTest(unittest.TestCase):
         self.assertTrue(len(ydata) == 6)
         self.assertListEqual(ydata, [[1.0, 5.0, 0.0]]*6)
 
-    @unittest.skip('This is an integrated test, it runs well, so skip it')
-    def test_inner_train_unimol_regression_net(self):
+    @unittest.skip('Example/Integrated test: start the inner training '
+                   'of unimol backend skipped.')
+    def test_train_unimol_from_scratch(self):
         
         # Step 1: instantiate the trainer
         mytrainer = XCParameterizationNetTrainer(
             model={'model_name': 'unimolv1',
-                   'model_size': '84m'})
+                   'model_size': '84m'}
+            )
         
         # Step 2: prepare the dataset
         # NOTE: the cluster center atom always has coordiantes (0,0,0)
@@ -594,20 +678,86 @@ class XCParameterizationNetTrainerTest(unittest.TestCase):
         # ```
         dataset = mytrainer.build_dataset(
             xdata=[os.path.join(self.testfiles, 'scf-unfinished')],
-            ydata=[[1.0, 5.0, 0.0]],
+            ydata=[{'Zn': [1.0], 'Y': [5.0], 'S': [0.0]}],
             mode='coordinates',
             cluster_truncation={'Zn': 5.0, 'Y': 3.0, 'S': 3.0},
             walk=False
         )
         
         # Step 3: train the model and get predictions
-        res = mytrainer._inner_train_unimol_regression_net(
+        mytrainer._inner_train_unimol_regression_net(
             dataset=dataset,
             inner_epochs=2,
             inner_batchsize=5,
             prefix='test'
         )
-        print(res)
+        # print(mytrainer._inner_eval(dataset=dataset))
+        self.assertTrue(os.path.exists('XCPNTrainer-test'))
+        self.assertTrue(all([os.path.exists(os.path.join('XCPNTrainer-test', f)) for f in \
+            ['config.yaml', 'cv.data', 'metric.result', 
+             'model_0.pth', 'model_1.pth', 'model_2.pth', 'model_3.pth', 'model_4.pth',
+             'target_scaler.ss']]))
 
+    @unittest.skip('Example/Integrated test: restart the inner training'
+                   ' from saved model of unimol backend skipped.')
+    def test_train_unimol_restart(self):
+        
+        mytrainer = XCParameterizationNetTrainer(
+            model={'model_restart': os.path.join(self.testfiles, 'XCPNTrainer-test')},
+        )
+
+        dataset = mytrainer.build_dataset(
+            xdata=[os.path.join(self.testfiles, 'scf-unfinished')],
+            ydata=[{'Zn': [1.0], 'Y': [5.0], 'S': [0.0]}],
+            mode='coordinates',
+            cluster_truncation={'Zn': 5.0, 'Y': 3.0, 'S': 3.0},
+            walk=False
+        )
+        
+        # Step 3: train the model and get predictions
+        mytrainer._inner_train_unimol_regression_net(
+            dataset=dataset,
+            inner_epochs=2,
+            inner_batchsize=5,
+            prefix='test'
+        )
+        # print(mytrainer._inner_eval(dataset=dataset))
+        self.assertTrue(os.path.exists('XCPNTrainer-test'))
+        self.assertTrue(all([os.path.exists(os.path.join('XCPNTrainer-test', f)) for f in \
+            ['config.yaml', 'cv.data', 'metric.result', 
+             'model_0.pth', 'model_1.pth', 'model_2.pth', 'model_3.pth', 'model_4.pth',
+             'target_scaler.ss']]))
+
+    @unittest.skip('Example/Integrated test: instantiate the unimol backend'
+                   ' model and call eval function skipped, because the model'
+                   ' files are too large to upload. The model is produced '
+                   'by the unittest `test_train_unimol_from_scratch`')
+    def test_eval_unimol_from_file(self):
+        mytrainer = XCParameterizationNetTrainer(
+            model={
+                'model_restart': os.path.join(self.testfiles, 
+                                              'XCPNTrainer-test')
+                },
+        )
+        
+        dataset = mytrainer.build_dataset(
+            xdata=[os.path.join(self.testfiles, 'scf-unfinished')],
+            ydata=[{'Zn': [1.0], 'Y': [5.0], 'S': [0.0]}],
+            mode='coordinates',
+            cluster_truncation={'Zn': 5.0, 'Y': 3.0, 'S': 3.0},
+            walk=False
+        )
+        
+        res = mytrainer._inner_eval(dataset=dataset)
+        shutil.rmtree('logs') # unimol produces this folder
+        
+        self.assertTrue(isinstance(res, np.ndarray))
+        ref = [   1.255945,   1.2559448,   1.2559445, -0.05477616,  
+                0.87933564,   1.2377898, -0.20508668, -0.20508668, 
+               -0.20508716,   0.2683932, -0.12968668, -0.10768171, 
+                -0.5796611, -0.62292475]
+        for r, v in zip(ref, res.flatten()):
+            self.assertAlmostEqual(r, v, places=5)
+        
 if __name__ == '__main__':
     unittest.main()

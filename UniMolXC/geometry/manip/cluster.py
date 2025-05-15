@@ -204,10 +204,12 @@ def clustergen(pos, direct=False, i=-1, rc=None, cell=None, elem=None):
         
     Returns
     -------
-    np.ndarray
-        the coordinates of the atoms in the cluster in shape (n, 3)
-    np.ndarray
-        the cell matrix in shape (3, 3)
+    dict
+        a dictionary containing the following keys:
+        - pos: the coordinates of the atoms in the cluster in shape (n, 3)
+        - cell: the cell matrix in shape (3, 3)
+        - elem: the element of the atoms in the cluster in shape (n, )
+        - center_typ: the type of the center atom in the cluster
     '''
     if not isinstance(pos, np.ndarray):
         raise TypeError('pos should be a numpy array')
@@ -238,7 +240,8 @@ def clustergen(pos, direct=False, i=-1, rc=None, cell=None, elem=None):
         if not all(isinstance(e, str) for e in elem):
             raise ValueError('elem should be a list of strings')
 
-    return _clustergen_impl(pos, i, rc, direct, cell, elem) # (n, 3)
+    return {'center_typ': elem[i] if elem else None, 'center_pos': np.array([0., 0., 0.])}| \
+        dict(zip(['pos', 'cell', 'elem'], _clustergen_impl(pos, i, rc, direct, cell, elem)))
 
 class TestCluster(unittest.TestCase):
         
@@ -315,20 +318,22 @@ class TestCluster(unittest.TestCase):
         
         rc = 10
         i = 0
-        cluster, cell, _ = clustergen(
-            pos=np.array([[0, 0, 0]]), 
-            direct=False, 
-            i=i, 
-            rc=rc, 
-            cell=np.array(cellpar_to_cell([3, 3, 3, 60, 60, 60])))
-        # mycluster = build_ase_atoms('Pt', cluster)
-        # visualize(mycluster, fn='cluster.xyz', show=False)
-        self.assertTrue(isinstance(cluster, np.ndarray))
-        self.assertTrue(cluster.ndim == 2)
-        nat, nd = cluster.shape
+        cluster = clustergen(pos=np.array([[0, 0, 0]]), 
+                             direct=False, 
+                             i=i, 
+                             rc=rc, 
+                             cell=np.array(cellpar_to_cell([3, 3, 3, 60, 60, 60])))
+        self.assertTrue(isinstance(cluster, dict))
+        self.assertSetEqual(set(cluster.keys()), 
+                            {'center_typ', 'center_pos', 'pos', 'cell', 'elem'})
+        pos = cluster['pos']
+        self.assertTrue(isinstance(pos, np.ndarray))
+        self.assertTrue(pos.ndim == 2)
+        nat, nd = pos.shape
         self.assertTrue(nd == 3)
         self.assertTrue(nat > 0)
-        self.assertTrue(all(d <= rc for d in distmat(cluster, cell=cell)[i]))
+        cell = cluster['cell']
+        self.assertTrue(all(d <= rc for d in distmat(pos, cell=cell)[i]))
         
 if __name__ == '__main__':
     unittest.main()
