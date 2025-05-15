@@ -324,7 +324,7 @@ class TestCluster(unittest.TestCase):
                              rc=rc, 
                              cell=np.array(cellpar_to_cell([3, 3, 3, 60, 60, 60])))
         self.assertTrue(isinstance(cluster, dict))
-        self.assertListEqual(cluster.keys(), ['center_typ', 'pos', 'cell', 'elem'])
+        self.assertListEqual(cluster.keys(), ['center_typ', 'center_pos', 'pos', 'cell', 'elem'])
         pos, cell, _, _ = cluster.values()
         self.assertTrue(isinstance(pos, np.ndarray))
         self.assertTrue(pos.ndim == 2)
