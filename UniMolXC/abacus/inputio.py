@@ -16,6 +16,8 @@ import os
 import uuid
 import unittest
 
+import numpy as np
+
 def read(fn):
     '''
     read the input file
@@ -39,10 +41,13 @@ def write(param, fn):
         for k, v in param.items():
             if isinstance(v, str):
                 f.write(f'{k:<30s} {v}\n')
-            elif isinstance(v, list):
+            elif isinstance(v, (list, tuple, set, np.ndarray)):
+                assert v.ndim == 1 or not isinstance(v, np.ndarray)
                 f.write(f'{k:<30s} {" ".join(map(str, v))}\n')
+            elif isinstance(v, (int, float)):
+                f.write(f'{k:<30s} {v}\n')
             else:
-                raise ValueError(f'Unknown type {type(v)} for {k}')
+                raise ValueError(f'Not-supported type {type(v)} for {k}')
         f.write('\n')
     return fn
 

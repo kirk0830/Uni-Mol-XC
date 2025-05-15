@@ -27,7 +27,11 @@ Then the process is repeated until convergence is reached.
 '''
 # built-in modules
 import os
+import time
+import uuid
+import shutil
 import unittest
+from typing import Callable
 
 # third-party modules
 import numpy as np
@@ -129,9 +133,9 @@ def calc_coefs(e0, e, coefs0=None, bound=None):
         raise ValueError('Optimization failed: {}'.format(res.message))
     return res.x
 
-def build_training_set(jobdir):
+def build_ener_calculator(prototyp_dir):
     '''
-    build the training set from the jobdir
+    build the energy terms calculator from the prepared ABACUS jobdir
     
     Parameters
     ----------
@@ -141,14 +145,39 @@ def build_training_set(jobdir):
     Returns
     -------
     list of AbacusJob
-        the training set
+        the well-managed ABACUS job objects, whose `build_derived`
+        method can be called to build new job with updated parameters
     '''
-    jobdir = [jobdir] if isinstance(jobdir, str) else jobdir
-    assert all(isinstance(d, str) for d in jobdir)
+    if not isinstance(prototyp_dir, list):
+        prototyp_dir = [prototyp_dir]
+    assert all(isinstance(prototyp, str) for prototyp in prototyp_dir)
     
-    return [AbacusJob(d) for d in jobdir]
+    return [AbacusJob(d) for d in prototyp_dir]
 
-
+def calc_ener(job: AbacusJob, 
+              jobrun_option: dict, 
+              kw_new: dict, 
+              f_e_reader: Callable,
+              remove_after_run: bool = True):
+    '''
+    calculate the energy terms for one abacus job
+    '''
+    assert isinstance(job, AbacusJob)
+    assert isinstance(jobrun_option, dict)
+    assert 'command' in jobrun_option
+    assert isinstance(kw_new, dict)
+    
+    jobdir_new = f'XCPNTrainerClassical'
+    newjob = job.build_derived(jobdir=jobdir_new,
+                               dftparam=kw_new,
+                               instatiate=True)
+    newjob.run(**jobrun_option)
+    # wait for the job to finish
+    
+    e = f_e_reader(newjob.path)
+    if remove_after_run:
+        shutil.rmtree(newjob.path)
+    return e
 
 class TestNetworkClassicalParameterizationKernel(unittest.TestCase):
     
