@@ -326,12 +326,13 @@ class TestCluster(unittest.TestCase):
         self.assertTrue(isinstance(cluster, dict))
         self.assertSetEqual(set(cluster.keys()), 
                             {'center_typ', 'center_pos', 'pos', 'cell', 'elem'})
-        pos, cell, _, _ = cluster.values()
+        pos = cluster['pos']
         self.assertTrue(isinstance(pos, np.ndarray))
         self.assertTrue(pos.ndim == 2)
         nat, nd = pos.shape
         self.assertTrue(nd == 3)
         self.assertTrue(nat > 0)
+        cell = cluster['cell']
         self.assertTrue(all(d <= rc for d in distmat(pos, cell=cell)[i]))
         
 if __name__ == '__main__':
