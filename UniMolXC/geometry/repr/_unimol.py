@@ -18,11 +18,11 @@ except ImportError:
 from UniMolXC.abacus.control import AbacusJob
 from UniMolXC.geometry.manip.cluster import clustergen
 
-def generate(jobdir, 
-             iat, 
-             rc, 
-             unimol_model='unimolv1',
-             unimol_size='84m'):
+def generate_from_abacus(jobdir, 
+                         iat, 
+                         rc, 
+                         unimol_model='unimolv1',
+                         unimol_size='84m'):
     '''
     With one ABACUS jobdir, generate the UniMol representation
     of the structure.
@@ -69,8 +69,8 @@ def generate(jobdir,
     return UniMolRepr(data_type='molecule', 
                       model_name=unimol_model, 
                       model_size=unimol_size)\
-           .get_repr(data={'atoms': [c[2] for c in clusters], 
-                           'coordinates': [c[0] for c in clusters]}, 
+           .get_repr(data={'atoms': [c['elem'] for c in clusters], 
+                           'coordinates': [c['pos'] for c in clusters]}, 
                      return_atomic_reprs=True)
 
 class TestAbacusToUniMolRepr(unittest.TestCase):
@@ -82,8 +82,8 @@ class TestAbacusToUniMolRepr(unittest.TestCase):
     
     def test_run(self):
         # from an unfinished ABACUS job
-        jobdir = os.path.join(self.testfiles, 'scf-unfinished')
-        myrepr = generate(jobdir, [0], 4.0)
+        jobdir = os.path.join(self.testfiles, 'scf-finished')
+        myrepr = generate_from_abacus(jobdir, [0], 4.0)
         print(myrepr)
 
 if __name__ == '__main__':
