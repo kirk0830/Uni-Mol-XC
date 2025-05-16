@@ -2,21 +2,26 @@
 this script places utility functions for indexing the abacus
 jobdir
 '''
+# built-in modules
 import os
 import unittest
 import uuid
 import shutil
+import json
+import subprocess
 
+# third-party modules
 import numpy as np
 
+# local modules
 from UniMolXC.abacus.inputio import read as read_dftparam
 from UniMolXC.abacus.inputio import write as write_dftparam
 from UniMolXC.abacus.struio import read_stru as read_stru_
 from UniMolXC.abacus.struio import write_stru
 from UniMolXC.abacus.kptio import read as read_kpt
 from UniMolXC.abacus.kptio import write as write_kpt
-from UniMolXC.abacus.logio import read_energy
 from UniMolXC.physics.database import convert_length_unit
+# from UniMolXC.abacus.remote import submit
 
 class AbacusJob:
         
@@ -25,7 +30,8 @@ class AbacusJob:
                       dftparam=None, 
                       stru=None, 
                       kpt=None, 
-                      instatiate=False):
+                      instatiate=False,
+                      log=True):
         '''build a derived AbacusJob instance with several parameters
         changed
         
@@ -52,21 +58,44 @@ class AbacusJob:
         os.makedirs(jobdir, exist_ok=False) # do not allow to overwrite
         os.chdir(jobdir)
         
+        # INPUT
+        dftparam = dftparam or {}
         dftparam = self.input|dftparam
+        # remember to adjust the pseudo_dir and orbital_dir
+        dftparam.update({'pseudo_dir': os.path.abspath(
+            self.input.get('pseudo_dir', self.path))})
+        if self.input.get('basis_type', 'pw') == 'lcao':
+            dftparam.update({'orbital_dir': os.path.abspath(
+                self.input.get('orbital_dir', self.path))})
         write_dftparam(dftparam, 'INPUT')
         if self.stru is None:
             raise RuntimeError('the function `read_stru` should '
                                'be called with `cache=True` before calling '
                                'this function.')
+        
+        # STRU
+        stru = stru or {}
         stru = self.stru|stru
         write_stru('.', stru)
-        if kpt is None and all([x not in dftparam for x in ['kspacing', 'gamma_only']]):
+
+        # KPT
+        if self.kpt is None \
+            and all([x not in dftparam for x in ['kspacing', 'gamma_only']]):
             raise RuntimeError('the function `read_kpt` should '
                                'be called with `cache=True` before calling '
                                'this function.')
-        if kpt is not None:
+        if all([x not in dftparam for x in ['kspacing', 'gamma_only']]):
+            kpt = kpt or {}
             kpt = self.kpt|kpt
             write_kpt(kpt, 'KPT')
+        # else:
+        #   otherwise, we do not need to write KPT file
+        
+        if log:
+            with open('XCPNTraine-param-update.json', 'w') as f:
+                json.dump({'input': dftparam,
+                           'stru': stru,
+                           'kpt': kpt}, f, indent=4)
         
         # finally return to the original directory
         os.chdir(cwd)
@@ -150,7 +179,7 @@ class AbacusJob:
         try:
             self.init_as_unfinished(jobdir)
         except FileNotFoundError:
-            raise RuntimeError('`jobdir` is not a valid ABACUS job directory.')
+            raise RuntimeError(f'{jobdir} is not a valid ABACUS job directory.')
         
         try:
             self.init_as_finished(jobdir)
@@ -164,7 +193,7 @@ class AbacusJob:
             stru = read_stru_(self.fn_stru)
             if cache:
                 self.stru = stru
-        return stru
+        return self.stru
 
     def read_kpt(self, cache=True):
         '''read the kpt from the jobdir'''
@@ -172,7 +201,7 @@ class AbacusJob:
             kpt = read_kpt(self.fn_kpt)
             if cache:
                 self.kpt = kpt
-        return kpt
+        return self.kpt
 
     def get_cell(self, unit='angstrom', reload_=False):
         '''get the cell from the jobdir'''
@@ -245,7 +274,9 @@ class AbacusJob:
 
     def run(self, 
             command, 
-            remote=None):
+            remote=None,
+            walltime=None,
+            reload_after_run=True):
         '''
         run the ABACUS job
         
@@ -253,17 +284,43 @@ class AbacusJob:
         ----------
         command : str
             the command to run the ABACUS job, such as 
-            `OMP_NUM_THREADS=1 mpirun -np 16 abacus >> out.log`
+            `OMP_NUM_THREADS=1 mpirun -np 16 abacus`. The stdout
+            and stderr will be written to `out.log` file in the job directory.
         remote : dict
             the settings to run the ABACUS job on a remote server
         '''
         if not remote:
             cwd = os.getcwd() # backup the current directory
             os.chdir(self.path)
-            os.system(command)
+            # open a subprocess to run the command
+            with open('out.log', 'w') as f:
+                process = subprocess.Popen(command, 
+                                           shell=True, 
+                                           stdout=f, 
+                                           stderr=subprocess.STDOUT)
+                if walltime:
+                    process.wait(timeout=walltime)
+                else:
+                    process.wait()
+            if process.returncode != 0:
+                raise RuntimeError('ABACUS job failed with return code '
+                    f'{process.returncode}. Please check the `out.log` '
+                    'file for more details.')
+            else:
+                if reload_after_run:
+                    try:
+                        self.init_as_finished(self.path)
+                        self.complete = True
+                    except FileNotFoundError:
+                        raise RuntimeError('ABACUS job is detected as '
+                            'finished by Python.subprocess module, but'
+                            ' there are files missing. Please check '
+                            'the status of job manually.')
             os.chdir(cwd) # return to the original directory
         else:
             raise NotImplementedError('remote run is not implemented yet.')
+            assert isinstance(remote, dict)
+            assert remote['mode'] == 'abacustest' # only support abacustest
 
 class AbacusJobTest(unittest.TestCase):
     
@@ -307,6 +364,45 @@ class AbacusJobTest(unittest.TestCase):
         self.assertTrue(all(os.path.exists(os.path.join(dppath, f))
                         for f in ['box.raw', 'coord.raw', 'type_map.raw', 'type.raw']))
         shutil.rmtree(dppath)
+
+    def test_build_derived(self):
+        jobdir = os.path.join(self.testfiles, 'scf-unfinished')
+        job = AbacusJob(jobdir)
+        _ = job.read_stru(cache=True)
+        _ = job.read_kpt(cache=True)
+        
+        jobdir_derived = 'AbacusJobDerivedTest'
+        dftparam = {'calculation': 'nscf', 'kspacing': 0.2}
+        
+        jobnew = job.build_derived(jobdir=jobdir_derived,
+                                   dftparam=dftparam,
+                                   instatiate=True)
+        self.assertTrue(os.path.exists(jobdir_derived))
+        shutil.rmtree(jobdir_derived)
+        self.assertIsInstance(jobnew, AbacusJob)
+        self.assertEqual(jobnew.path, jobdir_derived)
+        self.assertEqual(jobnew.input['calculation'], 'nscf')
+        self.assertEqual(jobnew.input['kspacing'], '0.2')
+        
+    @unittest.skip('Example/Integrated test: this test requires a real ABACUS job to run, '
+                   'it will be quite time-consuming, so skip it by default.')
+    def test_run(self):
+        jobdir = os.path.join(self.testfiles, 'scf-unfinished')
+        job = AbacusJob(jobdir)
+
+        # run the job
+        command = 'OMP_NUM_THREADS=1 mpirun -np 1 abacus'
+        with self.assertRaises(RuntimeError) as cm:
+            job.run(command)
+        # because the pseudopotential and orbital files are not provided
+        
+        # check the output then remove
+        self.assertTrue(os.path.exists(os.path.join(job.path, 'out.log')))
+        os.remove(os.path.join(job.path, 'out.log'))
+        self.assertTrue(os.path.exists(os.path.join(job.path, 'time.json')))
+        os.remove(os.path.join(job.path, 'time.json'))
+        self.assertTrue(os.path.exists(os.path.join(job.path, 'OUT.ABACUS')))
+        shutil.rmtree(os.path.join(job.path, 'OUT.ABACUS'))
 
 if __name__ == '__main__':
     unittest.main()
