@@ -21,6 +21,7 @@ from UniMolXC.abacus.struio import write_stru
 from UniMolXC.abacus.kptio import read as read_kpt
 from UniMolXC.abacus.kptio import write as write_kpt
 from UniMolXC.physics.database import convert_length_unit
+from UniMolXC.abacus.remote import submit
 
 class AbacusJob:
         
@@ -76,15 +77,19 @@ class AbacusJob:
         stru = stru or {}
         stru = self.stru|stru
         write_stru('.', stru)
-        if kpt is None and all([x not in dftparam for x in ['kspacing', 'gamma_only']]):
+
+        # KPT
+        if self.kpt is None \
+            and all([x not in dftparam for x in ['kspacing', 'gamma_only']]):
             raise RuntimeError('the function `read_kpt` should '
                                'be called with `cache=True` before calling '
                                'this function.')
-        
-        # KPT
-        if kpt is not None:
-            kpt = self.kpt or {}|kpt
+        if all([x not in dftparam for x in ['kspacing', 'gamma_only']]):
+            kpt = kpt or {}
+            kpt = self.kpt|kpt
             write_kpt(kpt, 'KPT')
+        # else:
+        #   otherwise, we do not need to write KPT file
         
         if log:
             with open('XCPNTraine-param-update.json', 'w') as f:
@@ -174,7 +179,7 @@ class AbacusJob:
         try:
             self.init_as_unfinished(jobdir)
         except FileNotFoundError:
-            raise RuntimeError('`jobdir` is not a valid ABACUS job directory.')
+            raise RuntimeError(f'{jobdir} is not a valid ABACUS job directory.')
         
         try:
             self.init_as_finished(jobdir)
@@ -188,7 +193,7 @@ class AbacusJob:
             stru = read_stru_(self.fn_stru)
             if cache:
                 self.stru = stru
-        return stru
+        return self.stru
 
     def read_kpt(self, cache=True):
         '''read the kpt from the jobdir'''
@@ -196,7 +201,7 @@ class AbacusJob:
             kpt = read_kpt(self.fn_kpt)
             if cache:
                 self.kpt = kpt
-        return kpt
+        return self.kpt
 
     def get_cell(self, unit='angstrom', reload_=False):
         '''get the cell from the jobdir'''
@@ -270,7 +275,8 @@ class AbacusJob:
     def run(self, 
             command, 
             remote=None,
-            walltime=None):
+            walltime=None,
+            reload_after_run=True):
         '''
         run the ABACUS job
         
@@ -301,19 +307,20 @@ class AbacusJob:
                     f'{process.returncode}. Please check the `out.log` '
                     'file for more details.')
             else:
-                try:
-                    self.init_as_finished(self.path)
-                    self.complete = True
-                except FileNotFoundError:
-                    raise RuntimeError('ABACUS job is detected as finished'
-                        ' by Python.subprocess module, but there are files'
-                        ' missing. Please check the status of job manually.')
+                if reload_after_run:
+                    try:
+                        self.init_as_finished(self.path)
+                        self.complete = True
+                    except FileNotFoundError:
+                        raise RuntimeError('ABACUS job is detected as '
+                            'finished by Python.subprocess module, but'
+                            ' there are files missing. Please check '
+                            'the status of job manually.')
             os.chdir(cwd) # return to the original directory
         else:
             raise NotImplementedError('remote run is not implemented yet.')
             assert isinstance(remote, dict)
             assert remote['mode'] == 'abacustest' # only support abacustest
-            
 
 class AbacusJobTest(unittest.TestCase):
     

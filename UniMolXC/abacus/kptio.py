@@ -25,7 +25,7 @@ def _read_mpmesh(raw):
         'mode': 'mp' if raw[2] != 'Gamma' else 'gamma-centered-mp',
         'kpoints': None,
         'nk': temp[:3],
-        'kshift': [float(x) for x in temp[4:]]
+        'kshift': [float(x) for x in temp[3:]]
     }
     
 def _read_line(raw):

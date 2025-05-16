@@ -42,7 +42,8 @@ def write(param, fn):
             if isinstance(v, str):
                 f.write(f'{k:<30s} {v}\n')
             elif isinstance(v, (list, tuple, set, np.ndarray)):
-                assert v.ndim == 1 or not isinstance(v, np.ndarray)
+                if isinstance(v, np.ndarray):
+                    assert v.ndim == 1
                 f.write(f'{k:<30s} {" ".join(map(str, v))}\n')
             elif isinstance(v, (int, float)):
                 f.write(f'{k:<30s} {v}\n')
