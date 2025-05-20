@@ -378,13 +378,15 @@ class XCParameterizationNetTrainer:
                                            dataset,
                                            inner_epochs=10,
                                            inner_batchsize=16,
-                                           prefix=None):
+                                           prefix=None,
+                                           **kwargs):
         # a single training step
         prefix = prefix or time.strftime("%Y%m%d-%H%M%S")
         return self.model.train(data=dataset,
                                 epochs=inner_epochs,
                                 batch_size=inner_batchsize,
-                                save_path=f'XCPNTrainer-{prefix}')
+                                save_path=f'XCPNTrainer-{prefix}',
+                                **kwargs)
     
     def _inner_train_xc_parameterization_net(self,
                                              dataset,
