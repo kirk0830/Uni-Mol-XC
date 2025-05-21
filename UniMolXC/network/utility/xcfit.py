@@ -40,104 +40,24 @@ from scipy.optimize import minimize
 
 # local modules
 from UniMolXC.abacus.control import AbacusJob
+from UniMolXC.utility.easyassert import loggingassert
 
-def minnesota(coef, e, e0):
-    '''
-    calculate the XC loss function of minnesota flavor
-    
-    Parameters
-    ----------
-    e0 : float or array-like
-        the reference value
-    e : array-like
-        the energy terms
-    coef : array-like
-        the coefficients of the energy terms
-        
-    Returns
-    -------
-    float
-        the loss value
-    '''
-    e    = np.array(e)
-    coef = np.array(coef)
-    
-    assert e.ndim == 2, 'e must be a 2D array-like object, '\
-        f'got {e.ndim}D, whose value is {e}'
-    _, ncoef = e.shape
-
-    if not isinstance(e0, (int, float)):
-        e0 = np.array(e0)
-        assert e0.ndim == 1, 'e0 must be a 1D array-like object'
-        assert len(e0) == ncoef
-        return np.sum((e0 - e * coef)**2) # element-wise
-    
-    return np.sum((e0 - np.dot(e, coef))**2)
-
-def minnesota_jac(coef, e, e0):
-    '''
-    calculate the gradient of the XC loss function of minnesota flavor
-    
-    Parameters
-    ----------
-    e0 : float or array-like
-        the reference value
-    e : array-like
-        the energy terms
-    coef : array-like
-        the coefficients of the energy terms
-        
-    Returns
-    -------
-    array-like
-        the gradient of the loss value
-    '''
-    
-    e    = np.array(e)
-    coef = np.array(coef)
-    
-    assert e.ndim == 2
-    _, ncoef = e.shape
-    
-    if not isinstance(e0, (int, float)):
-        e0 = np.array(e0)
-        assert e0.ndim == 1, 'e0 must be a 1D array-like object'
-        assert len(e0) == ncoef
-        return -2 * np.dot((e0 - e * coef), e) # element-wise
-    
-    return -2 * np.dot((e0 - np.dot(e, coef)), e)
-
-def perdew(coef, e, e0):
-    raise NotImplementedError('Perdew flavor loss function is not'
-                              ' implemented yet.')
-
-def perdew_jac(coef, e, e0):
-    raise NotImplementedError('Perdew flavor loss function derivative'
-                              ' of loss function is not implemented yet.')
-
-def head_gordon(coef, e, e0):
-    raise NotImplementedError('Martin Head-Gordon flavor loss '
-                              'function is not implemented yet.')
-
-def head_gordon_jac(coef, e, e0):
-    raise NotImplementedError('Martin Head-Gordon flavor loss '
-                              'function derivative is not implemented yet.')
-
-def calc_coef(e0, e, loss, dloss, coef_init=None, bound=None):
+def calc_coef(eref, e, loss_func, dloss_func, coef_init=None, bound=None):
     '''
     calculate the coefficients of the energy terms by minimizing
     the loss function
     
     Parameters
     ----------
-    e0 : float or array-like
+    eref : float or array-like
         the reference value
     e : np.ndarray
         the energy terms in 2D, the first dimension is the job index,
         the second dimension is the coefficients of the energy terms
-    loss : callable
-        the loss function to be minimized
-    dloss : callable
+    loss_func : callable
+        the loss function to be minimized, must place the variable to
+        minimize 
+    dloss_func : callable
         the gradient of the loss function
     coef_init : np.ndarray, optional
         the energy coefficients to be optimized.
@@ -168,10 +88,10 @@ def calc_coef(e0, e, loss, dloss, coef_init=None, bound=None):
     assert all([len(b) == 2 for b in bound])
     
     # minimize the loss function
-    res = minimize(loss, 
+    res = minimize(loss_func, 
                    coef_init, 
-                   args=(e, e0), 
-                   jac=dloss, 
+                   args=(e, eref), 
+                   jac=dloss_func, 
                    bounds=bound)
     if not res.success:
         raise ValueError(f'Optimization failed: {res.message}')
@@ -227,15 +147,7 @@ def calc_ener(job: AbacusJob,
         shutil.rmtree(newjob.path)
     return e
 
-def loggingassert(condition, message, errtyp=ValueError):
-    '''
-    a simple wrapper for assert with logging
-    '''
-    if not condition:
-        logging.error(message)
-        raise errtyp(message)
-
-def _fit_kernel(e0,
+def _fit_kernel(eref,
                 e_init,
                 f_xc_loss,
                 keyword_coef,
@@ -260,7 +172,7 @@ def _fit_kernel(e0,
     jiter = 0
     time_ = time.time()
     
-    msg = f'{"ITER":>4s} {"LOSS":>10s} {"Convergence":>15s} {"TIME":>10s}'
+    msg = f'{"ITER":>4s} {"LOSS":>10s} {"Convergence":>15s} {"TIME/s":>10s}'
     print('', flush=True)
     print(msg, flush=True)
     logging.info(msg)
@@ -269,10 +181,10 @@ def _fit_kernel(e0,
         (True if loss_thr is None else loss > loss_thr):
         
         # minimize the loss function to get the coefficients
-        coef = calc_coef(e0=e0, 
+        coef = calc_coef(eref=eref, 
                          e=eterms, 
-                         loss=f_xc_loss,
-                         dloss=df_xc_loss,
+                         loss_func=f_xc_loss,
+                         dloss_func=df_xc_loss,
                          coef_init=coef_)
         
         # re-calculate the energy terms with the new coefficients
@@ -284,7 +196,7 @@ def _fit_kernel(e0,
                            for job in build_ener_calculator(prototyp_dir)])
         
         # calculate the loss value
-        loss = f_xc_loss(e0, eterms, coef)
+        loss = f_xc_loss(coef, eterms, eref)
         
         # calculate the change of coefficients
         dcoef = np.linalg.norm(coef - coef_)
@@ -305,7 +217,7 @@ def _fit_kernel(e0,
     
     return coef, loss
 
-def fit(e0,
+def fit(eref,
         e_init,
         f_xc_loss,
         keyword_coef,
@@ -328,8 +240,8 @@ def fit(e0,
     
     Parameters
     ----------
-    e0 : float or array-like
-        the reference value, e.g., the formation enthalpy
+    eref : array-like
+        the reference values, e.g., the formation enthalpy
     e_init : array-like
         the initial energy terms, e.g., the energy terms
         calculated with one arbitrary method, e.g., DFT, CCSD, etc.
@@ -340,7 +252,7 @@ def fit(e0,
         input file, e.g., 'xc_coef'
     prototyp_dir : str or list of str
         the directory of the prototyped abacus job, or a list
-        of directories. The `e0` should be those energy 
+        of directories. The `eref` should be those energy 
         components calculated with these prototyped jobs at
         one level of theory
     jobrun_option : dict
@@ -376,23 +288,36 @@ def fit(e0,
         the maximum number of iterations, default is 10.
         If the convergence is reached within given steps, the
         fitting will stop eariler.
-        
+    remove_jobdir_after_run : bool, optional
+        whether to remove the job directory after the job
+        is finished. Default is True.
+    flog : str, optional
+        the file name of the log file, if None, the log will be
+        set to `xcparameterization-YYYYMMDD-HHMMSS.log` in the
+        current directory. If set to -1, the log file will not
+        be created. Default is None.
+    
     Returns
     -------
     tuple
         the optimized coefficients of the energy terms, and
         the loss value of the last iteration
     '''
-    if flog != False:
+    loggingassert(flog is None or isinstance(flog, str) or flog == -1,
+        'illegal value assigned for `flog`: must be None, a string or -1')
+    if flog is None:
         flog = f'xcparameterization-{time.strftime("%Y%m%d-%H%M%S")}.log'
-    if flog is not None:
+    if flog != -1:
         logging.basicConfig(filename=flog, level=logging.INFO,
                             format='%(asctime)s - %(levelname)s - %(message)s')
         logging.info('Start fitting the XC functional parameters.')
     
     # sanity checks
-    loggingassert(isinstance(e0, (int, float)),
-                  'e0 must be a scalar')
+    loggingassert(isinstance(eref, (list, np.ndarray)),
+                  'eref must be a scalar')
+    eref = np.array(eref)
+    loggingassert(eref.ndim == 1,
+                  'eref must be a 1D array-like object')
     
     loggingassert(isinstance(e_init, (list, np.ndarray)),
                   'e_init must be a list or a numpy array')
@@ -459,7 +384,7 @@ def fit(e0,
     loggingassert(isinstance(remove_jobdir_after_run, bool),
                   'remove_jobdir_after_run must be a boolean value')
 
-    myfit = _fit_kernel(e0=e0, 
+    myfit = _fit_kernel(eref=eref, 
                         e_init=e_init,
                         f_xc_loss=f_xc_loss,
                         keyword_coef=keyword_coef,
@@ -472,7 +397,7 @@ def fit(e0,
                         loss_thr=loss_thr,
                         maxiter=maxiter,
                         remove_jobdir_after_run=remove_jobdir_after_run)
-    if flog is not None:
+    if flog != -1:
         logging.info('Fitting finished.')
         logging.shutdown()
     return myfit
@@ -484,30 +409,14 @@ class TestXCClassicalParameterizationKernel(unittest.TestCase):
         testfiles = os.path.dirname(testfiles)
         testfiles = os.path.dirname(testfiles)
         self.testfiles = os.path.abspath(os.path.join(testfiles, 'testfiles'))
-        
-    def test_minnesota_loss(self):
-        e0 = 1.0
-        e = np.array([[1.0, 2.0, 3.0]])
-        coef = np.array([1.0, 2.0, 3.0])
-        self.assertAlmostEqual(minnesota(coef, e, e0), 13**2)
-
-        e0 = [1.0, 2.0, 3.0]
-        e = np.array([[1.0, 2.0, 3.0]])
-        coef = np.array([1.0, 2.0, 3.0])
-        self.assertAlmostEqual(minnesota(coef, e, e0), 2**2 + (2*3)**2)
-
-    def test_minnesota_derive(self):
-        e0 = 1.0
-        e = np.array([[1.0, 2.0, 3.0]])
-        coef = np.array([1.0, 2.0, 3.0])
-        self.assertTrue(np.allclose(minnesota_jac(coef, e, e0), 
-                                    -2 * np.dot((e0 - np.dot(e, coef)), e)))
-        
+    
     def test_fit(self):
-        e0 = 1.0
+        from UniMolXC.network.utility.xcloss import minnesota, dminnesota
+        
+        eref = [1.0]
         e_init = np.array([[1.0, 2.0, 3.0]])
         f_xc_loss = minnesota
-        df_xc_loss = minnesota_jac
+        df_xc_loss = dminnesota
         keyword_coef = 'mlxc_placeholder'
         prototyp_dir = [os.path.join(self.testfiles, 'scf-unfinished')]
         jobrun_option = {'command': 'echo "Unittest of function UniMolXC/'
@@ -516,15 +425,18 @@ class TestXCClassicalParameterizationKernel(unittest.TestCase):
                          'reload_after_run': False}
         f_ener_reader = lambda x: np.array([0.5, 2.7, 3.2])
         
-        coef, loss = fit(e0, e_init, f_xc_loss, keyword_coef,
+        coef, loss = fit(eref, e_init, f_xc_loss, keyword_coef,
                          prototyp_dir, jobrun_option,
                          f_ener_reader, coef_thr=1e-2,
                          coef_init=np.array([1.0, 1.0, 1.0]),
                          df_xc_loss=df_xc_loss, 
-                         remove_jobdir_after_run=True)
+                         remove_jobdir_after_run=True,
+                         flog=-1)
         
         self.assertEqual(len(coef), e_init.shape[1])
         self.assertTrue(isinstance(loss, float))
+        self.assertAlmostEqual(loss, 0.0, places=2)
+        self.assertAlmostEqual(np.dot(coef, [0.5, 2.7, 3.2]), eref[0], places=2)
     
 if __name__ == '__main__':
     unittest.main()
