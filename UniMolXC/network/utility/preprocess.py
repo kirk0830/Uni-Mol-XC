@@ -8,6 +8,21 @@ import numpy as np
 
 from UniMolXC.abacus.control import AbacusJob
 from UniMolXC.geometry.manip.cluster import clustergen
+try:
+    from UniMolXC.network.kernel._unimol import UniMolRegressionNet
+    from UniMolXC.geometry.repr._unimol import generate_from_abacus as unimol_repr
+except ImportError:
+    raise ImportError('unimol_tools is not installed. '
+                      'See https://github.com/deepmodeling/Uni-Mol/'
+                      'tree/main/unimol_tools '
+                      'for more information.')
+try:
+    from UniMolXC.geometry.repr._deepmd import generate as deepmd_desc
+except ImportError:
+    raise ImportError('DeePMD-kit is not installed. '
+                      'See https://docs.deepmodeling.com/projects/'
+                      'deepmd/en/stable/getting-started/install.html'
+                      '#install-with-conda')
 
 def build_dataset(xdata,
                    ydata,
@@ -215,6 +230,38 @@ def _build_from_abacus(folders,
     temp = [(c['elem'], c['pos']) for j in clusters for c in j]
     return dict(zip(['atoms', 'coordinates'], list(zip(*temp)))), labels
 
+def uniform_random_selector(nsample, ntotal, nfold, seed=None):
+    '''
+    A generator returning the list of indices of the selected samples.
+    
+    Parameters
+    ----------
+    nsample : int
+        the number of samples to be selected
+    ntotal : int
+        the total number of samples
+    nfold : int
+        the number of times one sample will be selected
+    seed : int, optional
+        the seed for the random number generator. The default is None.
+        If None, the random number generator will be initialized
+        with the current time.
+    
+    Details
+    -------
+    with a uniform random manner, select the `nsample` from `ntotal`
+    samples by `ntimes` times, for each sample, it will be sampled
+    `nfold` times, and the seed is used to control the random
+    number generator. We have: `ntotal` * `nfold` = `nsample` * `ntimes`
+    when we collect all generated indices.
+    
+    Yield
+    -----
+    list of int
+        the list of indices of the selected samples.
+    '''
+    pass
+
 class NetworkDataManagerTest(unittest.TestCase):
     def setUp(self):
         testfiles = os.path.dirname(__file__)
@@ -229,7 +276,7 @@ class NetworkDataManagerTest(unittest.TestCase):
         # the case that do not require the clustergen
         xdata, ydata = _build_from_abacus(
             folders=folders,
-            ydata=ydata
+            labels=ydata
         )
         # there would be a direct output of the atomic coordinates
         self.assertTrue(isinstance(xdata, dict))
@@ -251,8 +298,8 @@ class NetworkDataManagerTest(unittest.TestCase):
         # in the system, so the output should be two clusters
         xdata, ydata = _build_from_abacus(
             folders=folders,
-            ydata=ydata,
-            truncation=[{'Si': 5.0}] # the truncation radius as 5 Angstrom
+            labels=ydata,
+            cluster_truncation=[{'Si': 5.0}] # the truncation radius as 5 Angstrom
         )
         self.assertTrue(isinstance(xdata, dict))
         self.assertTrue('atoms' in xdata)
@@ -271,7 +318,7 @@ class NetworkDataManagerTest(unittest.TestCase):
         
         xdata, ydata = _build_from_abacus(
             folders=folders,
-            ydata=ydata
+            labels=ydata
         )
         self.assertTrue(isinstance(xdata, dict))
         self.assertTrue('atoms' in xdata)
@@ -293,8 +340,8 @@ class NetworkDataManagerTest(unittest.TestCase):
         
         xdata, ydata = _build_from_abacus(
             folders=folders,
-            ydata=ydata,
-            truncation={'Si': 3.0, 'Y': 5.0, 'Zn': 5.0, 'S': 3.0}
+            labels=ydata,
+            cluster_truncation={'Si': 3.0, 'Y': 5.0, 'Zn': 5.0, 'S': 3.0}
         )
         self.assertTrue(isinstance(xdata, dict))
         self.assertTrue('atoms' in xdata)
@@ -323,8 +370,8 @@ class NetworkDataManagerTest(unittest.TestCase):
         # intended for them
         xdata, ydata = _build_from_abacus(
             folders=folders,
-            ydata=ydata,
-            truncation={'Zn': 5.0, 'Y': 3.0}
+            labels=ydata,
+            cluster_truncation={'Zn': 5.0, 'Y': 3.0}
         )
         self.assertTrue(isinstance(xdata, dict))
         self.assertTrue('atoms' in xdata)
@@ -342,3 +389,27 @@ class NetworkDataManagerTest(unittest.TestCase):
         self.assertTrue(len(ydata) == 6)
         self.assertListEqual(ydata, [[1.0, 5.0, 0.0]]*6)
 
+    def test_uniform_random_selector(self):
+        nsample = 3
+        ntotal = 10
+        ntimes = 5
+        nfold = 2
+        seed = 42
+        # 10 samples, select 3 samples each time, and for each sample
+        # being selected 2 times
+        
+        res = list(uniform_random_selector(nsample, ntotal, ntimes, nfold, seed))
+        for r in res:
+            print(r)
+        
+        self.assertEqual(len(res), ntimes)
+        self.assertTrue(all(len(r) == nsample for r in res))
+        merged = np.array(res).flatten()
+        unique, count = np.unique(merged, return_counts=True)
+        # the number of unique samples should be equal to the number of
+        # samples
+        self.assertEqual(len(unique), ntotal)
+        self.assertTrue(all(c == nfold for c in count))
+
+if __name__ == '__main__':
+    unittest.main()

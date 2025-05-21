@@ -79,21 +79,10 @@ import numpy as np
 
 # local modules
 from UniMolXC.network.kernel._xcnet import XCParameterizationNet
-try:
-    from UniMolXC.network.kernel._unimol import UniMolRegressionNet
-    from UniMolXC.geometry.repr._unimol import generate_from_abacus as unimol_repr
-except ImportError:
-    raise ImportError('unimol_tools is not installed. '
-                      'See https://github.com/deepmodeling/Uni-Mol/'
-                      'tree/main/unimol_tools '
-                      'for more information.')
-try:
-    from UniMolXC.geometry.repr._deepmd import generate as deepmd_desc
-except ImportError:
-    raise ImportError('DeePMD-kit is not installed. '
-                      'See https://docs.deepmodeling.com/projects/'
-                      'deepmd/en/stable/getting-started/install.html'
-                      '#install-with-conda')
+from UniMolXC.network.kernel._unimol import UniMolRegressionNet
+from UniMolXC.network.utility.preprocess import build_dataset
+from UniMolXC.network.utility.xcfit import fit as classical_xc_fit
+from UniMolXC.network.utility.xcloss import minnesota, dminnesota, tminnesota
 
 class XCParameterizationNetTrainer:
 
@@ -140,13 +129,74 @@ class XCParameterizationNetTrainer:
                                 save_path=f'XCPNTrainer-{prefix}',
                                 **kwargs)
     
-    def inner_train_xcp_net(self,
-                            dataset,
-                            inner_thr=None,
-                            inner_maxiter=1e5,
-                            save_model=None):
+    def train_unimol_net(self,
+                         outer_e_ref,
+                         outer_e_init,
+                         outer_dft_prototyp_dir,
+                         outer_dft_recipe_name,
+                         outer_dft_run_option,
+                         outer_e_read_func,
+                         outer_loss_func=minnesota,
+                         outer_dloss_func=dminnesota,
+                         outer_loss_thr=None,
+                         outer_maxiter=10,
+                         label_init=None,
+                         label_thr=None,
+                         inner_epochs=10,
+                         inner_batchsize=16,
+                         inner_clustergen_scheme=None,
+                         prefix=None,
+                         **kwargs):
+        raise NotImplementedError('The overall training covering the process of '
+            'the label generation and the training of UniMol Multilabel Regression '
+            ' Net is not properly implemented yet. Presently, the training data is '
+            'not properly constructed, due to all structures share the same suite '
+            'of XC functional coefficients, so all clusters generated will also have'
+            ' the identical labels. This will drive the model to act to be a '
+            'constant function, which is not the expected behavior. A strategy to '
+            'mitigate this issue is to randomly select a subset of systems to '
+            'generate the labels, and then use the corresponding structures to '
+            'generate clusters and train the model. How good will this be is not'
+            ' tested yet. The function for randomly selecting a subset of systems '
+            'is not implemented yet, see the function uniform_random_selector in '
+            'file network/utility/preprocess.py.')
+        # one-shot label generation
+        label, loss_labelgen = classical_xc_fit(
+            eref=outer_e_ref, e_init=outer_e_init,
+            dft_prototyp_dir=outer_dft_prototyp_dir,
+            f_xc_loss=outer_loss_func,
+            keyword_coef=outer_dft_recipe_name,
+            jobrun_option=outer_dft_run_option,
+            f_ener_reader=outer_e_read_func,
+            df_xc_loss=outer_dloss_func,
+            coef_init=label_init, coef_thr=label_thr,
+            loss_thr=outer_loss_thr,
+            maxiter=outer_maxiter,
+            remove_jobdir_after_run=kwargs.get('remove_jobdir_after_run', True),
+        )
+        print(f'The label is generated with error: {loss_labelgen:>10.4e}', flush=True)
+        data_set = build_dataset(
+            xdata=outer_dft_prototyp_dir,
+            ydata=[label for _ in range(len(outer_dft_prototyp_dir))],
+            walk=False,
+            mode='abacus',
+            cluster_truncation=inner_clustergen_scheme
+        )
+        return self.inner_train_unimol_net(
+            dataset=data_set,
+            inner_epochs=inner_epochs,
+            inner_batchsize=inner_batchsize,
+            prefix=prefix,
+            **kwargs
+        )
+    
+    def inner_train_xcp_net(self):
         raise NotImplementedError('The inner training of XCParameterizationNet '
-                                  'is not implemented yet')           
+                                  'is not implemented yet')
+    
+    def train_xcp_net(self,):
+        raise NotImplementedError('The training of XCParameterizationNet '
+                                  'is not implemented yet')
     
     def inner_eval(self, dataset):
         if self.model is None:
