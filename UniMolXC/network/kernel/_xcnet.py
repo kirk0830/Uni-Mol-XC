@@ -4,7 +4,7 @@
 from torch import nn
 
 # local modules
-from UniMolXC.network.kernel.classical_th import minnesota
+from UniMolXC.network.utility.xcloss import tminnesota
 
 class XCParameterizationNet(nn.Module):
     '''

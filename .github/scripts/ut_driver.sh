@@ -11,5 +11,5 @@ python3 ./UniMolXC/abacus/struio.py -v
 python3 ./UniMolXC/geometry/manip/cluster.py -v
 
 # network
-python3 ./UniMolXC/network/trainer.py -v
-python3 ./UniMolXC/network/kernel/classical.py -v
+python3 ./UniMolXC/network/utility/xcfit.py -v
+python3 ./UniMolXC/network/utility/xcloss.py -v
