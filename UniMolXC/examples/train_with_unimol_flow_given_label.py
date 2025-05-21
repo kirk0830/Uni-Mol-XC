@@ -42,13 +42,13 @@ class TestTrainWithUniMolFlowGivenLabel(unittest.TestCase):
         )
         
         # Step 3: train the model and get predictions
-        mytrainer._inner_train_unimol_regression_net(
+        mytrainer.inner_train_unimol_net(
             dataset=dataset,
             inner_epochs=2,
             inner_batchsize=5,
             prefix='test'
         )
-        # print(mytrainer._inner_eval(dataset=dataset))
+        # print(mytrainer.inner_eval(dataset=dataset))
         self.assertTrue(os.path.exists('XCPNTrainer-test'))
         self.assertTrue(all([os.path.exists(os.path.join('XCPNTrainer-test', f)) for f in \
             ['config.yaml', 'cv.data', 'metric.result', 
@@ -70,13 +70,13 @@ class TestTrainWithUniMolFlowGivenLabel(unittest.TestCase):
         )
         
         # Step 3: train the model and get predictions
-        mytrainer._inner_train_unimol_regression_net(
+        mytrainer.inner_train_unimol_net(
             dataset=dataset,
             inner_epochs=2,
             inner_batchsize=5,
             prefix='test'
         )
-        # print(mytrainer._inner_eval(dataset=dataset))
+        # print(mytrainer.inner_eval(dataset=dataset))
         self.assertTrue(os.path.exists('XCPNTrainer-test'))
         self.assertTrue(all([os.path.exists(os.path.join('XCPNTrainer-test', f)) for f in \
             ['config.yaml', 'cv.data', 'metric.result', 

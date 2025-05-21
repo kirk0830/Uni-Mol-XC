@@ -29,7 +29,7 @@ class TestInferWithUniMolFlow(unittest.TestCase):
             walk=False
         )
         
-        res = mytrainer._inner_eval(dataset=dataset)
+        res = mytrainer.inner_eval(dataset=dataset)
         shutil.rmtree('logs') # unimol produces this folder
         
         self.assertTrue(isinstance(res, np.ndarray))

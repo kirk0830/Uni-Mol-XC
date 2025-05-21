@@ -73,7 +73,6 @@ introduced above.
 import os
 import unittest
 import time
-import shutil
 
 # third-party modules
 import numpy as np
@@ -127,7 +126,7 @@ class XCParameterizationNetTrainer:
         self.coef_traj = None
         self.loss_traj = None
     
-    def _inner_train_unimol_regression_net(self,
+    def inner_train_unimol_net(self,
                                            dataset,
                                            inner_epochs=10,
                                            inner_batchsize=16,
@@ -141,7 +140,7 @@ class XCParameterizationNetTrainer:
                                 save_path=f'XCPNTrainer-{prefix}',
                                 **kwargs)
     
-    def _inner_train_xc_parameterization_net(self,
+    def inner_train_xcp_net(self,
                                              dataset,
                                              inner_thr=None,
                                              inner_maxiter=1e5,
@@ -149,7 +148,7 @@ class XCParameterizationNetTrainer:
         raise NotImplementedError('The inner training of XCParameterizationNet '
                                   'is not implemented yet')           
     
-    def _inner_eval(self, dataset):
+    def inner_eval(self, dataset):
         if self.model is None:
             raise RuntimeError('No backend model is assigned')
         if self.model_backend != 'unimol':
@@ -269,7 +268,7 @@ class XCParameterizationNetTrainer:
             raise NotImplementedError('The training employing XCParameterizationNet '
                                       'as the inner training kernel is not implemented yet')
         loss = np.inf if inner_guess is None else outer_floss(
-            c = self._inner_train_unimol_regression_net(dataset=dataset,
+            c = self.inner_train_unimol_net(dataset=dataset,
                                                         inner_epochs=inner_epochs,
                                                         inner_batchsize=inner_batchsize,
                                                         prefix=inner_prefix), 
