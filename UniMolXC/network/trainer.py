@@ -127,11 +127,11 @@ class XCParameterizationNetTrainer:
         self.loss_traj = None
     
     def inner_train_unimol_net(self,
-                                           dataset,
-                                           inner_epochs=10,
-                                           inner_batchsize=16,
-                                           prefix=None,
-                                           **kwargs):
+                               dataset,
+                               inner_epochs=10,
+                               inner_batchsize=16,
+                               prefix=None,
+                               **kwargs):
         # a single training step
         prefix = prefix or time.strftime("%Y%m%d-%H%M%S")
         return self.model.train(data=dataset,
@@ -141,10 +141,10 @@ class XCParameterizationNetTrainer:
                                 **kwargs)
     
     def inner_train_xcp_net(self,
-                                             dataset,
-                                             inner_thr=None,
-                                             inner_maxiter=1e5,
-                                             save_model=None):
+                            dataset,
+                            inner_thr=None,
+                            inner_maxiter=1e5,
+                            save_model=None):
         raise NotImplementedError('The inner training of XCParameterizationNet '
                                   'is not implemented yet')           
     
