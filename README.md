@@ -20,9 +20,12 @@ conda create -n mlxc python=3.10
 conda activate mlxc
 
 # install dependencies
+# export CXX11_ABI_FLAG=1 (consistent with DeePMD-kit)
+export CXX11_ABI_FLAG=1
+# install PyTorch cpu version
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 # install DeePMD-kit
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-pip install deepmd-kit
+pip install git+https://github.com/deepmodeling/deepmd-kit@v3.1.0a0
 
 # install DPData
 pip install dpdata
