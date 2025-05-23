@@ -15,22 +15,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4         # Specify version for best practices
 
-      - name: Set up Conda
-        uses: conda-incubator/setup-miniconda@v3  # Specify version here as well
-        with:
-          auto-update-conda: true
-          python-version: '3.10'
-          activate-environment: mlxc
-          use-only-tar-bz2: true
-
-      - name: Initialize Conda for bash and activate environment
-        shell: bash -l {0}
-        run: |
-          conda init bash
-          source ~/.bashrc
-          conda activate mlxc
-          conda info --envs
-
       - name: Set environment
         run: |
           export CXX11_ABI_FLAG=1
