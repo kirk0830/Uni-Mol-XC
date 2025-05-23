@@ -80,9 +80,9 @@ import numpy as np
 # local modules
 from UniMolXC.network.kernel._xcnet import XCParameterizationNet
 from UniMolXC.network.kernel._unimol import UniMolRegressionNet
-from UniMolXC.network.utility.preprocess import build_dataset
-from UniMolXC.network.utility.xcfit import fit as classical_xc_fit
-from UniMolXC.network.utility.xcloss import minnesota, dminnesota, tminnesota
+from UniMolXC.network.utilities.preprocess import build_dataset
+from UniMolXC.network.utilities.xcfit import fit as classical_xc_fit
+from UniMolXC.network.utilities.xcloss import minnesota, dminnesota, tminnesota
 
 class XCParameterizationNetTrainer:
 
