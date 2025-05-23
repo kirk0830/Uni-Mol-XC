@@ -21,8 +21,8 @@ conda activate mlxc
 
 # install dependencies
 # install DeePMD-kit
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-pip install deepmd-kit
+pip install torch torchvision torchaudio
+pip install git+https://github.com/deepmodeling/deepmd-kit@v3.1.0a0
 
 # install DPData
 pip install dpdata

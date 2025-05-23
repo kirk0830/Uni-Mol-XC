@@ -9,6 +9,8 @@ python3 ./UniMolXC/abacus/struio.py -v
 
 # geometry
 python3 ./UniMolXC/geometry/manip/cluster.py -v
+python3 ./UniMolXC/geometry/repr/_unimol.py -v
+python3 ./UniMolXC/geometry/repr/_deepmd.py -v
 
 # network
 python3 ./UniMolXC/network/utility/xcfit.py -v

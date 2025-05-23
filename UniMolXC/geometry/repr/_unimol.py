@@ -7,6 +7,7 @@ import os
 import unittest
 
 # third-party modules
+import numpy as np
 try:
     from unimol_tools import UniMolRepr
 except ImportError:
@@ -80,11 +81,25 @@ class TestAbacusToUniMolRepr(unittest.TestCase):
         testfiles = os.path.dirname(testfiles)
         self.testfiles = os.path.abspath(os.path.join(testfiles, 'testfiles'))
     
-    def test_run(self):
+    @unittest.skip('Skip due to the high time consumption of '
+                   'downloading the UniMol model')
+    def test_generate_from_abacus(self):
         # from an unfinished ABACUS job
         jobdir = os.path.join(self.testfiles, 'scf-finished')
         myrepr = generate_from_abacus(jobdir, [0], 4.0)
-        print(myrepr)
+        self.assertTrue(isinstance(myrepr, dict))
+        
+        nframe_clsrepr, ndim_clsrepr = np.array(myrepr['cls_repr']).shape
+        nframe_coords, nat_coords, nxyz = np.array(myrepr['atomic_coords']).shape
+        self.assertEqual(nframe_clsrepr, nframe_coords)
+        self.assertEqual(nxyz, 3)
+        nframe_symbol, nat_symbol = np.array(myrepr['atomic_symbol']).shape
+        self.assertEqual(nframe_symbol, nframe_coords)
+        self.assertEqual(nat_symbol, nat_coords)
+        nframe_atrepr, nat_atrepr, ndim_atrepr = np.array(myrepr['atomic_reprs']).shape
+        self.assertEqual(nframe_atrepr, nframe_coords)
+        self.assertEqual(nat_atrepr, nat_coords)
+        self.assertEqual(ndim_atrepr, ndim_clsrepr)
 
 if __name__ == '__main__':
     unittest.main()
