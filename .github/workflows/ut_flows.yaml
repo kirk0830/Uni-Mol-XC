@@ -23,39 +23,40 @@ jobs:
           activate-environment: mlxc
           use-only-tar-bz2: true
 
-      - name: Set environment
+      - name: Initialize Conda for bash and activate environment
+        shell: bash -l {0}
         run: |
           conda init bash
+          source ~/.bashrc
+          conda activate mlxc
+          conda info --envs
+
+      - name: Set environment
+        run: |
           export CXX11_ABI_FLAG=1
 
       - name: Install dependencies - PyTorch (CPU)
         run: |
-          conda activate mlxc
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 
       - name: Install dependencies - DeePMD-kit
         run: |
-          conda activate mlxc
           pip install git+https://github.com/deepmodeling/deepmd-kit@v3.1.0a0
       
       - name: Install dependencies - DPData
         run: |
-          conda activate mlxc
           pip install dpdata
 
       - name: Install dependencies - Huggingface
         run: |
-          conda activate mlxc
           pip install huggingface_hub
 
       - name: Install dependencies - UniMol
         run: |
-          conda activate mlxc
           pip install unimol_tools --upgrade
 
       - name: Install the package
         run: |
-          conda activate mlxc
           pip install .
 
       - name: Set up permissions for execute
@@ -63,7 +64,6 @@ jobs:
 
       - name: Run unit test driver to execute all unit test registered
         run: |
-          conda activate mlxc
           output=$(./.github/scripts/ut_driver.sh)
           exit_code=$?
           echo "$output"
