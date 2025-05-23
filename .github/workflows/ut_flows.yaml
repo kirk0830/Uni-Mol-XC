@@ -25,6 +25,7 @@ jobs:
 
       - name: Set environment
         run: |
+          conda init bash
           export CXX11_ABI_FLAG=1
 
       - name: Install dependencies - PyTorch (CPU)
