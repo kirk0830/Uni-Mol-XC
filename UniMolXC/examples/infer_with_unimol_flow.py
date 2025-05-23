@@ -8,7 +8,7 @@ import unittest
 import numpy as np
 
 from UniMolXC.network.trainer import XCParameterizationNetTrainer
-from UniMolXC.network.utility.preprocess import build_dataset
+from UniMolXC.network.utilities.preprocess import build_dataset
 
 class TestInferWithUniMolFlow(unittest.TestCase):
     def setUp(self):

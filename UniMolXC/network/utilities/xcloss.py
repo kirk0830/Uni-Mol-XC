@@ -12,7 +12,7 @@ import numpy as np
 import torch as th
 from torch import Tensor
 
-from UniMolXC.utility.easyassert import loggingassert
+from UniMolXC.utilities.easyassert import loggingassert
 
 def minnesota(coef, e, eref):
     '''
