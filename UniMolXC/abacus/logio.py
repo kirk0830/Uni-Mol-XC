@@ -6,7 +6,7 @@ import os
 import subprocess
 import unittest
 
-from UniMolXC.utilities.units import convert_energy_unit
+from UniMolXC.utility.units import convert_energy_unit
 
 def grep(pat, fn):
     '''

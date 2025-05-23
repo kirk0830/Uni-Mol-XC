@@ -20,7 +20,7 @@ from UniMolXC.abacus.struio import read_stru as read_stru_
 from UniMolXC.abacus.struio import write_stru
 from UniMolXC.abacus.kptio import read as read_kpt
 from UniMolXC.abacus.kptio import write as write_kpt
-from UniMolXC.utilities.units import convert_length_unit
+from UniMolXC.utility.units import convert_length_unit
 # from UniMolXC.abacus.remote import submit
 
 class AbacusJob:

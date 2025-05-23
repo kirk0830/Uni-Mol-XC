@@ -1,1 +1,0 @@
-'''utility functions for the UniMolXC package'''
