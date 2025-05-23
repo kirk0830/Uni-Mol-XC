@@ -7,7 +7,7 @@ import unittest
 import shutil
 
 from UniMolXC.network.trainer import XCParameterizationNetTrainer
-from UniMolXC.network.utilities.preprocess import build_dataset
+from UniMolXC.network.utility.preprocess import build_dataset
 
 class TestTrainWithUniMolFlowGivenLabel(unittest.TestCase):
 

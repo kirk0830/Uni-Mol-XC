@@ -40,7 +40,7 @@ from scipy.optimize import minimize
 
 # local modules
 from UniMolXC.abacus.control import AbacusJob
-from UniMolXC.utilities.easyassert import loggingassert
+from UniMolXC.utility.easyassert import loggingassert
 
 def calc_coef(eref, e, loss_func, dloss_func, coef_init=None, bound=None):
     '''
@@ -411,7 +411,7 @@ class TestXCClassicalParameterizationKernel(unittest.TestCase):
         self.testfiles = os.path.abspath(os.path.join(testfiles, 'testfiles'))
     
     def test_fit(self):
-        from UniMolXC.network.utilities.xcloss import minnesota, dminnesota
+        from UniMolXC.network.utility.xcloss import minnesota, dminnesota
         
         eref = [1.0]
         e_init = np.array([[1.0, 2.0, 3.0]])
