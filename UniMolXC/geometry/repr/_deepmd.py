@@ -2,25 +2,25 @@
 Generate the DeePMD-kit representation of a structure with
 the 'descriptor' of DeePMD model.
 '''
-
-MODELS = {
-    'DPA-1-OC2M': 'https://store.aissquare.com/models/4560acec-db9c-11ee-9b22-506b4b2349d8/OC_10M.pb',
-}
-
+# in-built modules
 import os
 import unittest
 
+# third-party modules
 import numpy as np
 from ase.geometry import cell_to_cellpar, cellpar_to_cell
 try:
     from deepmd.infer.deep_pot import DeepPot
 except ImportError:
     raise ImportError('DeePMD-kit is not installed. '
-                      'See https://docs.deepmodeling.com/projects/deepmd/en/stable/getting-started/install.html#install-with-conda')
+        'See https://docs.deepmodeling.com/projects/deepmd/'
+        'en/stable/getting-started/install.html#install-with-conda')
+
+# local modules
 from UniMolXC.abacus.control import AbacusJob
 
 def generate_from_abacus(jobdir,
-                         fmodel,
+                         dpmodel,
                          head=None):
     '''
     With one ABACUS jobdir, generate the DeePMD representation
@@ -30,8 +30,9 @@ def generate_from_abacus(jobdir,
     ----------
     jobdir : str
         The path to the ABACUS job directory.
-    fmodel : str
-        The path to the DeePMD model file.
+    dpmodel : str
+        The path to the DeePMD model file, or the instance of
+        `deepmd.infer.deep_pot.DeepPot`.
     head : str, optional
         deprecated, the head of the DeePMD model.
     
@@ -43,12 +44,14 @@ def generate_from_abacus(jobdir,
     '''
     # simple sanity check
     assert isinstance(jobdir, str)
-    assert os.path.exists(fmodel), f'{fmodel} does not exist'
-    
+    if isinstance(dpmodel, str):
+        assert os.path.exists(dpmodel), f'{dpmodel} does not exist'
+        dpmodel = DeepPot(dpmodel)
+    else:
+        assert isinstance(dpmodel, DeepPot)
+
     # convert the structure to the DPData format
     data = AbacusJob(jobdir).to_deepmd()
-    # instantiate the DeePMD model
-    dpmodel = DeepPot(fmodel)
     
     type_map_model = dpmodel.get_type_map()
     atomtype = np.array([type_map_model.index(data['atom_names'][it_at])
