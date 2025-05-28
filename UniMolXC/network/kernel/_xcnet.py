@@ -991,7 +991,7 @@ class TestXCParameterizationNet(unittest.TestCase):
                                         model_size={'ndim': 10, 
                                                     'nparam': 1, 
                                                     'nhidden': [20, 20, 20]})
-        trainer.train(data, epochs=2, batch_size=2, f_loss=tminnesota)
+        trainer.train(data, epochs=20, batch_size=2, f_loss=tminnesota)
         # check if the model is instantiated
         self.assertIsNotNone(trainer.model)
         self.assertTrue(isinstance(trainer.model, XCPNetImpl))
