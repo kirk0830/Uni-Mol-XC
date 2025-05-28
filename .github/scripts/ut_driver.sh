@@ -15,3 +15,5 @@ python3 ./UniMolXC/geometry/repr/_deepmd.py -v
 # network
 python3 ./UniMolXC/network/utility/xcfit.py -v
 python3 ./UniMolXC/network/utility/xcloss.py -v
+python3 ./UniMolXC/network/kernel/_unimol.py -v
+python3 ./UniMolXC/network/kernel/_xcnet.py -v
