@@ -4,6 +4,7 @@ jobdir
 '''
 # built-in modules
 import os
+import re
 import unittest
 import uuid
 import shutil
@@ -220,6 +221,19 @@ class AbacusJob:
         
         return self.cell
 
+    @staticmethod
+    def __extractstrutauc__(stru, unit='angstrom'):
+        '''extract the atomic positions from the structure dict'''
+        pos = np.array([atom['coord'] 
+                        for s in stru['species'] 
+                        for atom in s['atom']])
+        factor = 1 if stru['coord_type'].startswith('Cartesian') \
+            else stru['lat']['const']
+        factor *= 1 if 'angstrom' in stru['coord_type'] \
+            else convert_length_unit(1, 'bohr', 'angstrom')
+        pos = pos * factor
+        return pos.reshape(-1, 3) * convert_length_unit(1, 'angstrom', unit)
+
     def get_atomic_positions(self, unit='angstrom', reload_=False):
         '''get the atomic positions from the jobdir'''
         if self.atomic_positions is not None and not reload_:
@@ -229,19 +243,33 @@ class AbacusJob:
             raise RuntimeError('the function `read_stru` should '
                                'be called with `cache=True` before calling '
                                'this function.')
-        
-        pos = np.array([atom['coord'] 
-                        for s in self.stru['species'] 
-                        for atom in s['atom']])
-        factor = 1 if self.stru['coord_type'].startswith('Cartesian') \
-            else self.stru['lat']['const']
-        factor *= 1 if 'angstrom' in self.stru['coord_type'] \
-            else convert_length_unit(1, 'bohr', 'angstrom')
-        pos = pos * factor
-        self.atomic_positions = pos.reshape(-1, 3) * \
-            convert_length_unit(1, 'angstrom', unit)
-        
+
+        self.atomic_positions = self.__extractstrutauc__(self.stru, unit)
         return self.atomic_positions
+
+    def get_trajectories(self, unit='angstrom'):
+        '''
+        get the trajectories from the outdir
+        '''
+        task = self.input.get('calculation', 'scf')
+        if task not in ['md', 'relax']:
+            raise RuntimeError('the job is not a MD or relax job, '
+                               'cannot get the trajectories.')
+        if task == 'md':
+            return [self.__extractstrutauc__(
+                stru=read_stru_(os.path.join(self.outdir, 'STRU', f)),
+                unit=unit)
+            for f in os.listdir(os.path.join(self.outdir, 'STRU'))
+            if re.match(r'STRU_MD_\d+', f)]
+        elif task == 'relax':
+            return [self.__extractstrutauc__(
+                stru=read_stru_(os.path.join(self.outdir, f)),
+                unit=unit)
+            for f in os.listdir(self.outdir)
+            if re.match(r'STRU_ION\d+_D', f)]
+        else:
+            raise RuntimeError('AbacusJob.get_trajectories: reaches an unreachable '
+                'code line, please report this issue to the developer.')
 
     def get_atomic_symbols(self, reload_=False):
         '''get the atomic symbols from the jobdir'''
@@ -259,17 +287,55 @@ class AbacusJob:
         
         return self.atomic_symbols
 
-    def to_deepmd(self, path_=None):
-        '''convert the jobdir to a DeePMD-kit format'''
+    def to_deepmd(self, path_=None, fmt='deepmd', mode='initial'):
+        '''convert the jobdir to a DeePMD-kit format
+        
+        Parameters
+        ----------
+        path_ : str
+            the path to save the converted files, if None, 
+            the files will be saved in the current directory
+        fmt : str
+            the format to save the converted files, default is 'deepmd'
+            which means the files will be saved in the DeePMD-kit format.
+            All possible formats are listed in the DPData documentation.
+        mode : str
+            the mode of the job, can be 'initial', 'md' or 'relax'.
+            The default is 'initial', which means the job is a SCF job.
+            If the mode is 'md', the job is a Molecular Dynamics trajectory,
+            and if the mode is 'relax', the job is a relaxation job.
+        
+        Returns
+        -------
+        dpdata.System or dpdata.LabeledSystem
+        the converted DeePMD-kit format data, which can be used
+        to train a DeePMD-kit model.
+        '''
         try:
-            from dpdata import System
+            from dpdata import System, LabeledSystem
         except ImportError:
             raise ImportError('DPData is not installed. '
                               'Please install it with `pip install dpdata`.')
         
-        mysys = System(file_name=self.fn_stru, fmt='abacus/stru')
+        assert re.match(r'deepmd(/\w+)?', fmt)
+        assert mode in ['initial', 'md', 'relax']
+        
+        if mode == 'initial':
+            mysys = System(file_name=self.fn_stru, 
+                           fmt='abacus/stru')
+        elif mode == 'md':
+            mysys = LabeledSystem(file_name=self.path, 
+                                  fmt='abacus/md')
+        elif mode == 'relax':
+            raise NotImplementedError('the mode `relax` is not well-implemented'
+                                      'yet.')
+            mysys = LabeledSystem(file_name=self.path, 
+                                  fmt='abacus/relax')
+        else:
+            raise RuntimeError('AbacusJob.to_deepmd: reaches an unreachable '
+                'code line, please report this issue to the developer.')
         if path_:
-            mysys.to(fmt='deepmd', file_name=path_)
+            mysys.to(fmt=fmt, file_name=path_)
         return mysys
 
     def run(self, 
@@ -328,6 +394,16 @@ class AbacusJobTest(unittest.TestCase):
         testfiles = os.path.dirname(__file__)
         testfiles = os.path.dirname(testfiles)
         self.testfiles = os.path.abspath(os.path.join(testfiles, 'testfiles'))
+        self.scheduled_delete = [] # to remove in tearDown
+    
+    def tearDown(self):
+        '''remove the temporary files and folders created during the test'''
+        for f in self.scheduled_delete:
+            if os.path.isfile(f):
+                os.remove(f)
+            else:
+                shutil.rmtree(f)
+        self.scheduled_delete = []
     
     def test_init_as_unfinished(self):
         jobdir = os.path.join(self.testfiles, 'scf-unfinished')
@@ -347,7 +423,29 @@ class AbacusJobTest(unittest.TestCase):
         self.assertEqual(job.fn_istate, os.path.join(job.outdir, 'istate.info'))
         self.assertTrue(job.complete)
     
-    def test_to_deepmd(self):
+    def test_get_md_trajectories(self):
+        jobdir = os.path.join(self.testfiles, 'md-finished')
+        job = AbacusJob(jobdir)
+        
+        trajs = job.get_trajectories(unit='angstrom')
+        self.assertIsInstance(trajs, list)
+        self.assertEqual(len(trajs), 5)  # there are 5 MD steps
+        for traj in trajs:
+            self.assertIsInstance(traj, np.ndarray)
+            self.assertEqual(traj.shape, (2, 3))  # 2 atoms, 3 coordinates
+            
+    def test_get_relax_trajectories(self):
+        jobdir = os.path.join(self.testfiles, 'relax-finished')
+        job = AbacusJob(jobdir)
+        
+        trajs = job.get_trajectories(unit='angstrom')
+        self.assertIsInstance(trajs, list)
+        self.assertEqual(len(trajs), 8)
+        for traj in trajs:
+            self.assertIsInstance(traj, np.ndarray)
+            self.assertEqual(traj.shape, (2, 3))
+    
+    def test_to_deepmd_scf(self):
         try:
             import dpdata
         except ImportError:
@@ -357,13 +455,54 @@ class AbacusJobTest(unittest.TestCase):
                           'Please install it with `pip install dpdata`.')
         jobdir = os.path.join(self.testfiles, 'scf-finished')
         job = AbacusJob(jobdir)
+        
         dppath = str(uuid.uuid4())
         os.makedirs(dppath, exist_ok=True)
-        job.to_deepmd(dppath)
+        self.scheduled_delete.append(dppath)  # to remove in tearDown
+        
+        out = job.to_deepmd(dppath)
+        self.assertIsInstance(out, dpdata.System)
         self.assertTrue(os.path.exists(dppath))
         self.assertTrue(all(os.path.exists(os.path.join(dppath, f))
                         for f in ['box.raw', 'coord.raw', 'type_map.raw', 'type.raw']))
-        shutil.rmtree(dppath)
+        
+        # test the case to_deepmd with fmt='deepmd/npy'
+        dppath_npy = str(uuid.uuid4())
+        os.makedirs(dppath_npy, exist_ok=True)
+        self.scheduled_delete.append(dppath_npy)  # to remove in tearDown
+        
+        out = job.to_deepmd(path_=dppath_npy, fmt='deepmd/npy')
+        self.assertIsInstance(out, dpdata.System)
+        self.assertTrue(os.path.exists(dppath_npy))
+        self.assertTrue(all(os.path.exists(os.path.join(dppath_npy, f))
+                        for f in ['type_map.raw', 'type.raw']))
+        self.assertTrue(all(os.path.exists(os.path.join(dppath_npy, 'set.000', f))
+                        for f in ['box.npy', 'coord.npy', 'move.npy']))
+        # because the set.*** will split the data into several folders, 
+        # usually we do not consider this format
+
+    def test_to_deepmd_md(self):
+        '''test the case that convert the Molecular Dynamics trajectory
+        to the DeePMD-kit compatiable format'''
+        try:
+            import dpdata
+        except ImportError:
+            # skip the test if dpdata is not installed
+            self.skipTest('DPData is not installed. The unittest of function '
+                          '`to_deepmd` is skipped. '
+                          'Please install it with `pip install dpdata`.')
+        jobdir = os.path.join(self.testfiles, 'md-finished')
+        job = AbacusJob(jobdir)
+        
+        dppath = str(uuid.uuid4())
+        os.makedirs(dppath, exist_ok=True)
+        self.scheduled_delete.append(dppath)  # to remove in tearDown
+        
+        out = job.to_deepmd(mode='md', path_=dppath)
+        self.assertIsInstance(out, dpdata.LabeledSystem)
+        self.assertTrue(os.path.exists(dppath))
+        self.assertTrue(all(os.path.exists(os.path.join(dppath, f))
+                        for f in ['box.raw', 'coord.raw', 'type_map.raw', 'type.raw']))
 
     def test_build_derived(self):
         jobdir = os.path.join(self.testfiles, 'scf-unfinished')
@@ -372,13 +511,14 @@ class AbacusJobTest(unittest.TestCase):
         _ = job.read_kpt(cache=True)
         
         jobdir_derived = 'AbacusJobDerivedTest'
+        self.scheduled_delete.append(jobdir_derived)  # to remove in tearDown
+        
         dftparam = {'calculation': 'nscf', 'kspacing': 0.2}
         
         jobnew = job.build_derived(jobdir=jobdir_derived,
                                    dftparam=dftparam,
                                    instatiate=True)
         self.assertTrue(os.path.exists(jobdir_derived))
-        shutil.rmtree(jobdir_derived)
         self.assertIsInstance(jobnew, AbacusJob)
         self.assertEqual(jobnew.path, jobdir_derived)
         self.assertEqual(jobnew.input['calculation'], 'nscf')

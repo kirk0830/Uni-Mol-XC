@@ -1,0 +1,988 @@
+ AUTO_SET NBANDS to 14
+ AUTO_SET NBANDS to 14
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             22
+              7             23
+              8             22
+                            startmag_type = 2
+                       charge from rho_at = 4
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000044670983
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000063592151
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000003
+                  charge after normalized = 8
+                 charge before normalized = 8.00000068137307
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8.00000068179806
+                  charge after normalized = 8.00000000000003
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000068208544
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000068190106
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000068199075
+                  charge after normalized = 8.00000000000002
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8.00000000000001
+           total electron number from rho = 8.00000000000001
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+      Processor           Atom
+              1             24
+              2             23
+              3             23
+              4             21
+              5             20
+              6             22
+              7             23
+              8             21
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.0000006408452
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.000000639269
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000063921292
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000063916136
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000063929267
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000063924391
+                  charge after normalized = 7.99999999999999
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             22
+              7             23
+              8             22
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000071436826
+                  charge after normalized = 8.00000000000002
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.0000007141547
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.00000071401485
+                  charge after normalized = 7.99999999999997
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.0000007141393
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000071417305
+                  charge after normalized = 7.99999999999999
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             22
+              7             23
+              8             22
+                 charge before normalized = 8.00000000000003
+                  charge after normalized = 8
+                 charge before normalized = 8.00000055732082
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000055754309
+                  charge after normalized = 7.99999999999996
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000055780764
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.00000055778544
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000055783324
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000055775571
+                  charge after normalized = 7.99999999999999
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             21
+              6             22
+              7             23
+              8             22
+                 charge before normalized = 7.9999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000012265425
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000012243981
+                  charge after normalized = 8.00000000000002
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000012252729
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.00000012248181
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000012262042
+                  charge after normalized = 7.99999999999998
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000012248451
+                  charge after normalized = 8
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             21
+              6             22
+              7             23
+              8             22
+                 charge before normalized = 8.00000000000012
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 7.99999984558195
+                  charge after normalized = 8.00000000000002
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 7.99999984564664
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 7.99999984563308
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 7.99999984577616
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 7.99999984575911
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 7.9999998456591
+                  charge after normalized = 7.99999999999999
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8.00000000000001
+           total electron number from rho = 8.00000000000001
+                                should be = 8
+      Processor           Atom
+              1             24
+              2             23
+              3             23
+              4             21
+              5             21
+              6             22
+              7             23
+              8             22
+                 charge before normalized = 7.99999999999993
+                  charge after normalized = 8
+                 charge before normalized = 8.00000004424467
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000004530982
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.0000000452821
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000004538272
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.00000004531786
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000004524448
+                  charge after normalized = 8
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8.00000000000001
+           total electron number from rho = 8.00000000000001
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             22
+              7             22
+              8             22
+                 charge before normalized = 8.00000000000006
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8.00000047627433
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000047654532
+                  charge after normalized = 8.00000000000002
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.00000047664326
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000047649042
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.0000004765825
+                  charge after normalized = 8
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8.00000000000001
+           total electron number from rho = 8.00000000000001
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             22
+              7             22
+              8             22
+                 charge before normalized = 7.99999999999994
+                  charge after normalized = 8
+                 charge before normalized = 8.00000108049562
+                  charge after normalized = 7.99999999999997
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000108011547
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000107992858
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000107998322
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000107993208
+                  charge after normalized = 8.00000000000002
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8.00000000000001
+           total electron number from rho = 8.00000000000001
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             22
+              7             22
+              8             22
+                 charge before normalized = 8.00000000000007
+                  charge after normalized = 8
+                 charge before normalized = 8.00000095675126
+                  charge after normalized = 8.00000000000002
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000095663436
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000095658103
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.0000009565624
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000095647738
+                  charge after normalized = 7.99999999999998
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999998
+           total electron number from rho = 7.99999999999998
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             21
+              6             22
+              7             22
+              8             22
+                 charge before normalized = 7.99999999999988
+                  charge after normalized = 8
+                 charge before normalized = 8.00000053551622
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.000000535539
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000053536767
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000053554266
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000053554394
+                  charge after normalized = 8.00000000000001
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999998
+           total electron number from rho = 7.99999999999998
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+      Processor           Atom
+              1             24
+              2             23
+              3             23
+              4             21
+              5             21
+              6             22
+              7             23
+              8             22
+                 charge before normalized = 8.00000000000005
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8.00000026925689
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000026956272
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000026955741
+                  charge after normalized = 7.99999999999998
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000026947272
+                  charge after normalized = 8.00000000000002
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000026955715
+                  charge after normalized = 8
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+      Processor           Atom
+              1             24
+              2             23
+              3             23
+              4             21
+              5             21
+              6             22
+              7             23
+              8             22
+                 charge before normalized = 8.00000000000005
+                  charge after normalized = 8
+                 charge before normalized = 8.00000021653872
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000021636871
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000021639166
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000021644492
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000021635743
+                  charge after normalized = 8.00000000000001
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             21
+              6             22
+              7             23
+              8             23
+                 charge before normalized = 7.99999999999997
+                  charge after normalized = 8
+                 charge before normalized = 8.00000023661151
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000023655076
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.00000023651406
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000023645626
+                  charge after normalized = 8.00000000000002
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000023644656
+                  charge after normalized = 8
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             23
+              7             23
+              8             22
+                 charge before normalized = 7.99999999999995
+                  charge after normalized = 8
+                 charge before normalized = 8.00000011454231
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000011454356
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000011456934
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000011446269
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000011452983
+                  charge after normalized = 8
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8.00000000000001
+           total electron number from rho = 8.00000000000001
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             23
+              7             23
+              8             22
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.00000022382102
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000022371817
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000022368728
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000022372715
+                  charge after normalized = 7.99999999999998
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000022369891
+                  charge after normalized = 7.99999999999999
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8.00000000000001
+           total electron number from rho = 8.00000000000001
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             23
+              7             23
+              8             22
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.0000004321773
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000043217534
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000043214716
+                  charge after normalized = 7.99999999999998
+                 charge before normalized = 8.00000000000004
+                  charge after normalized = 8
+                 charge before normalized = 8.00000043216207
+                  charge after normalized = 8
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             23
+              7             23
+              8             22
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000056304565
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000056302116
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000002
+                  charge after normalized = 8
+                 charge before normalized = 8.0000005630424
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.0000005631246
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000056313393
+                  charge after normalized = 8.00000000000002
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8.00000000000001
+           total electron number from rho = 8.00000000000001
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             23
+              7             23
+              8             22
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000051010409
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 7.99999999999998
+                  charge after normalized = 8
+                 charge before normalized = 8.00000051002788
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000051006033
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000050990743
+                  charge after normalized = 8.00000000000001
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8.00000000000001
+           total electron number from rho = 8.00000000000001
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             23
+              7             23
+              8             22
+                 charge before normalized = 8.00000000000008
+                  charge after normalized = 8
+                 charge before normalized = 8.00000037328264
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000037323176
+                  charge after normalized = 8
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000037334166
+                  charge after normalized = 8
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000037319983
+                  charge after normalized = 8
+                 charge before normalized = 8
+                  charge after normalized = 8
+                 charge before normalized = 8.00000037334135
+                  charge after normalized = 8.00000000000001
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 7.99999999999999
+           total electron number from rho = 7.99999999999999
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+      Processor           Atom
+              1             23
+              2             23
+              3             23
+              4             21
+              5             20
+              6             22
+              7             23
+              8             22
+                 charge before normalized = 7.99999999999993
+                  charge after normalized = 8
+                 charge before normalized = 8.00000029653895
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000029624752
+                  charge after normalized = 8.00000000000002
+                 charge before normalized = 7.99999999999999
+                  charge after normalized = 8
+                 charge before normalized = 8.00000029631063
+                  charge after normalized = 8.00000000000001
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000029631418
+                  charge after normalized = 7.99999999999999
+                 charge before normalized = 8.00000000000001
+                  charge after normalized = 8
+                 charge before normalized = 8.00000029633371
+                  charge after normalized = 7.99999999999998
+                            startmag_type = 2
+                       charge from rho_at = 3.99999805785498
+                         charge should be = 4
+
+ SETUP ATOMIC RHO FOR SPIN 1
+                 Electron number from rho = 8
+           total electron number from rho = 8
+                                should be = 8
+ write_dmr  warning : the output type of DMR should be npz or csr.

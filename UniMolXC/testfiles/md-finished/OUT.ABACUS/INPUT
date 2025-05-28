@@ -2,13 +2,13 @@ INPUT_PARAMETERS
 #Parameters (1.System)
 suffix                         ABACUS #the name of main output directory
 ntype                          1 #atom species number
-calculation                    scf #test; scf; relax; nscf; get_wf; get_pchg
+calculation                    md #test; scf; relax; nscf; get_wf; get_pchg
 esolver_type                   ksdft #the energy solver: ksdft, sdft, ofdft, tddft, lj, dp, ks-lr, lr
-symmetry                       1 #the control of symmetry
+symmetry                       0 #the control of symmetry
 symmetry_prec                  1e-06 #accuracy for symmetry
 symmetry_autoclose             1 #whether to close symmetry automatically when error occurs in symmetry analysis
 cal_stress                     0 #calculate the stress or not
-cal_force                      0 #if calculate the force at the end of the electronic iteration
+cal_force                      1 #if calculate the force at the end of the electronic iteration
 kpar                           1 #devide all processors into kpar groups and k points will be distributed among
 bndpar                         1 #devide all processors into bndpar groups and bands will be distributed among each group
 latname                        none #the name of lattice name
@@ -25,12 +25,12 @@ erf_ecut                       0 #the value of the constant energy cutoff
 erf_height                     0 #the height of the energy step for reciprocal vectors
 erf_sigma                      0.1 #the width of the energy step for reciprocal vectors
 fft_mode                       0 #mode of FFTW
-diag_subspace                  0 #method of subspace diagonalization in dav_subspace. 0:LaPack; 1:genelpa, 2:scalapack
 init_wfc                       atomic #start wave functions are from 'atomic', 'atomic+random', 'random' or
+psi_initializer                0 #whether to use psi_initializer
 pw_seed                        0 #random seed for initializing wave functions
 init_chg                       atomic #start charge is from 'atomic' or file
 dm_to_rho                      0 #reads dmr in npz format and calculates electron density
-chg_extrap                     atomic #atomic; first-order; second-order; dm:coefficients of SIA
+chg_extrap                     second-order #atomic; first-order; second-order; dm:coefficients of SIA
 init_vel                       0 #read velocity from STRU or not
 stru_file                      STRU #the filename of file containing atom positions
 kpoint_file                    KPT #the name of file containing k points
@@ -40,7 +40,7 @@ read_file_dir                  OUT.ABACUS/ #directory of files for reading
 restart_load                   0 #restart from disk
 wannier_card                   none #input card for wannier functions
 mem_saver                      0 #Only for nscf calculations. if set to 1, then a memory saving technique will be used for many k point calculations.
-diago_proc                     1 #the number of procs used to do diagonalization
+diago_proc                     8 #the number of procs used to do diagonalization
 nbspline                       -1 #the order of B-spline basis
 kspacing                       0 0 0  #unit in 1/bohr, should be > 0, default is 0 which means read KPT file
 min_dist_coef                  0.2 #factor related to the allowed minimum distance between two atoms
@@ -55,14 +55,13 @@ nbands                         0 #number of bands
 nelec                          0 #input number of electrons
 nelec_delta                    0 #change in the number of total electrons
 nupdown                        0 #the difference number of electrons between spin-up and spin-down
-dft_functional                 GGA_C_PBE+GGA_X_RPBE #exchange correlation functional
+dft_functional                 default #exchange correlation functional
 xc_temperature                 0 #temperature for finite temperature functionals
 pseudo_rcut                    15 #default #exchange correlation functional
 pseudo_mesh                    0 #0: use our own mesh to do radial renormalization; 1: use mesh as in QE
 nspin                          1 #1: single spin; 2: up and down spin; 4: noncollinear spin
 pw_diag_nmax                   50 #max iteration number for cg
 pw_diag_thr                    0.01 #threshold for eigenvalues is cg electron iterations
-diago_smooth_ethr              0 #smooth ethr for iter methods
 pw_diag_ndim                   4 #dimension of workspace for Davidson diagonalization
 diago_cg_prec                  1 #diago_cg_prec
 smearing_method                gauss #type of smearing_method: gauss; fd; fixed; mp; mp2; mv
@@ -86,7 +85,6 @@ scf_ene_thr                    -1 #total energy error threshold
 scf_os_stop                    0 #whether to stop scf when oscillation is detected
 scf_os_thr                     -0.01 #charge density threshold for oscillation
 scf_os_ndim                    8 #number of old iterations used for oscillation detection
-sc_os_ndim                     5 #number of old iterations used for oscillation detection, for Spin-Constrained DFT
 scf_thr_type                   2 #type of the criterion of scf_thr, 1: reci drho for pw, 2: real drho for lcao
 lspinorb                       0 #consider the spin-orbit interaction
 noncolin                       0 #using non-collinear-spin
@@ -117,7 +115,7 @@ relax_method                   cg #cg; bfgs; sd; cg; cg_bfgs;
 relax_new                      1 #whether to use the new relaxation method
 relax                          0 #allow relaxation along the specific direction
 relax_scale_force              0.5 #controls the size of the first CG step if relax_new is true
-relax_nmax                     1 #number of ion iteration steps
+relax_nmax                     -1 #number of ion iteration steps
 relax_cg_thr                   0.5 #threshold for switching from cg to bfgs, unit: eV/Angstrom
 force_thr                      0.001 #force threshold, unit: Ry/Bohr
 force_thr_ev                   0.0257112 #force threshold, unit: eV/Angstrom
@@ -137,13 +135,13 @@ fixed_atoms                    0 #whether to preseve direct coordinates of atoms
 
 #Parameters (5.Molecular dynamics)
 md_type                        nvt #choose ensemble
-md_thermostat                  nhc #choose thermostat
-md_nstep                       10 #md steps
+md_thermostat                  berendsen #choose thermostat
+md_nstep                       20 #md steps
 md_dt                          1 #time step
 md_tchain                      1 #number of Nose-Hoover chains
-md_tfirst                      -1 #temperature first
-md_tlast                       -1 #temperature last
-md_dumpfreq                    1 #The period to dump MD information
+md_tfirst                      300 #temperature first
+md_tlast                       300 #temperature last
+md_dumpfreq                    5 #The period to dump MD information
 md_restartfreq                 5 #The period to output MD restart information
 md_seed                        -1 #random seed for MD
 md_prec_level                  0 #precision level for vc-md
@@ -163,7 +161,7 @@ msst_vel                       0 #the velocity of shock wave
 msst_vis                       0 #artificial viscosity
 msst_tscale                    0.01 #reduction in initial temperature
 msst_qmass                     1 #mass of thermostat
-md_tfreq                       0 #oscillation frequency, used to determine qmass of NHC
+md_tfreq                       0.025 #oscillation frequency, used to determine qmass of NHC
 md_damp                        1 #damping parameter (time units) used to add force in Langevin method
 md_nraise                      1 #parameters used when md_type=nvt
 cal_syns                       0 #calculate asynchronous overlap matrix to output for Hefei-NAMD
@@ -174,7 +172,7 @@ md_pcouple                     xyz #whether couple different components: xyz, xy
 md_pchain                      1 #num of thermostats coupled with barostat
 md_pfirst                      -1 #initial target pressure
 md_plast                       -1 #final target pressure
-md_pfreq                       0 #oscillation frequency, used to determine qmass of thermostats coupled with barostat
+md_pfreq                       0.0025 #oscillation frequency, used to determine qmass of thermostats coupled with barostat
 dump_force                     1 #output atomic forces into the file MD_dump or not
 dump_vel                       1 #output atomic velocities into the file MD_dump or not
 dump_virial                    1 #output lattice virial into the file MD_dump or not
@@ -196,35 +194,6 @@ of_full_pw                     1 #If set to 1, ecut will be ignored when collect
 of_full_pw_dim                 0 #If of_full_pw = true, dimention of FFT is testricted to be (0) either odd or even; (1) odd only; (2) even only
 of_read_kernel                 0 #If set to 1, the kernel of WT KEDF will be filled from file of_kernel_file, not from formula. Only usable for WT KEDF
 of_kernel_file                 WTkernel.txt #The name of WT kernel file.
-of_ml_gene_data                0 #Generate training data or not
-of_ml_device                   cpu #Run NN on GPU or CPU
-of_ml_feg                      0 #The Free Electron Gas limit: 0: no, 3: yes
-of_ml_nkernel                  1 #Number of kernels
-of_ml_kernel                   1  #Type of kernel, 1 for wt, 2 for yukawa, and 3 for TKK
-of_ml_kernel_scaling           1  #Scaling parameter of kernel, w(r-r') = scaling^3 * w(scaling (r-r'))
-of_ml_yukawa_alpha             1  #Parameter alpha of yukawa kernel
-of_ml_kernel_file              none  #The file of TKK
-of_ml_gamma                    0 #Descriptor: gamma = (rho / rho0)^(1/3)
-of_ml_p                        0 #Descriptor: p = |nabla rho|^2 / [2 (3 pi^2)^(1/3) rho^(4/3)]^2
-of_ml_q                        0 #Descriptor: q = nabla^2 rho / [4 (3 pi^2)^(2/3) rho^(5/3)]
-of_ml_tanhp                    0 #Descriptor: tanhp = tanh(chi_p * p)
-of_ml_tanhq                    0 #Descriptor: tanhq = tanh(chi_q * q)
-of_ml_chi_p                    1 #Hyperparameter: tanhp = tanh(chi_p * p)
-of_ml_chi_q                    1 #Hyperparameter: tanhq = tanh(chi_q * q)
-of_ml_gammanl                  0  #Descriptor: gammanl = int{gamma(r') * w(r-r') dr'}
-of_ml_pnl                      0  #Descriptor: pnl = int{p(r') * w(r-r') dr'}
-of_ml_qnl                      0  #Descriptor: qnl = int{q(r') * w(r-r') dr'}
-of_ml_xi                       0  #Descriptor: xi = int{rho(r')^(1/3) * w(r-r') dr'} / rho^(1/3)
-of_ml_tanhxi                   0  #Descriptor: tanhxi = tanh(chi_xi * xi)
-of_ml_tanhxi_nl                0  #Descriptor: tanhxi_nl = int{tanhxi(r') * w(r-r') dr'}
-of_ml_tanh_pnl                 0  #Descriptor: tanh_pnl = tanh(chi_pnl * pnl)
-of_ml_tanh_qnl                 0  #Descriptor: tanh_qnl = tanh(chi_qnl * qnl)
-of_ml_tanhp_nl                 0  #Descriptor: tanhp_nl = int{tanhp(r') * w(r-r') dr'}
-of_ml_tanhq_nl                 0  #Descriptor: tanhq_nl = int{tanhq(r') * w(r-r') dr'}
-of_ml_chi_xi                   1  #Hyperparameter: tanhpxi = tanh(chi_xi * xi)
-of_ml_chi_pnl                  1  #Hyperparameter: tanh_pnl = tanh(chi_pnl * pnl)
-of_ml_chi_qnl                  1  #Hyperparameter: tanh_qnl = tanh(chi_qnl * qnl)
-of_ml_local_test               0 #Test: read in the density, and output the F and Pauli potential
 
 #Parameters (7.Stochastic DFT)
 method_sto                     2 #1: slow and save memory, 2: fast and waste memory
@@ -238,11 +207,11 @@ initsto_ecut                   0 #maximum ecut to init stochastic bands
 initsto_freq                   0 #frequency to generate new stochastic orbitals when running md
 
 #Parameters (8.DeepKS)
-deepks_out_labels              0 #>0 compute descriptor for deepks. 1 used during training, 2 used for label production
+deepks_out_labels              0 #>0 compute descriptor for deepks
 deepks_scf                     0 #>0 add V_delta to Hamiltonian
 deepks_equiv                   0 #whether to use equivariant version of DeePKS
 deepks_bandgap                 0 #>0 for bandgap label
-deepks_v_delta                 0 #>0 for v_delta label. when output, 1 for v_delta_precalc, 2 for phialpha and grad_evdm ( can save memory )
+deepks_v_delta                 0 #>0 for v_delta label. when output, 1 for v_delta_precalc, 2 for psialpha and grad_evdm ( can save memory )
 deepks_out_unittest            0 #if set 1, prints intermediate quantities that shall be used for making unit test
 deepks_model                   None #file dir of traced pytorch model: 'model.ptg
 bessel_descriptor_lmax         2 #lmax used in generating spherical bessel functions
@@ -255,7 +224,7 @@ bessel_descriptor_sigma        0.1 #sphereical bessel smearing_sigma
 #Parameters (9.rt-tddft)
 td_force_dt                    0.02 #time of force change
 td_vext                        0 #add extern potential or not
-td_vext_dire                    #extern potential direction
+td_vext_dire                   1 #extern potential direction
 init_vecpot_file               0 #init vector potential through file or not
 td_print_eij                   -1 #print eij or not
 td_edm                         0 #the method to calculate the energy density matrix
@@ -298,34 +267,30 @@ lr_thr                         0.01 #convergence threshold of the LR-TDDFT eigen
 out_wfc_lr                     0 #whether to output the eigenvectors (excitation amplitudes) in the particle-hole basis
 lr_unrestricted                0 #Whether to use unrestricted construction for LR-TDDFT
 abs_wavelen_range              0 0  #the range of wavelength(nm) to output the absorption spectrum 
-abs_gauge                      length #whether to use length or velocity gauge to calculate the absorption spectrum in LR-TDDFT
 abs_broadening                 0.01 #the broadening (eta) for LR-TDDFT absorption spectrum
 
 #Parameters (11.Output)
-out_stru                       0 #output the structure files after each ion step
-out_freq_elec                  100 #the frequency of electronic iter to output charge density and wavefunction 
+out_stru                       1 #output the structure files after each ion step
+out_freq_elec                  0 #the frequency ( >= 0) of electronic iter to output charge density and wavefunction. 0: output only when converged
 out_freq_ion                   0 #the frequency ( >= 0 ) of ionic step to output charge density and wavefunction. 0: output only when ion steps are finished
-out_chg                        0 3  #> 0 output charge density for selected electron steps, second parameter controls the precision, default is 3.
+out_chg                        -1 3  #> 0 output charge density for selected electron steps, second parameter controls the precision, default is 3.
 out_pot                        0 #output realspace potential
 out_wfc_pw                     0 #output wave functions
 out_wfc_r                      0 #output wave functions in realspace
 printe                         100 #Print out energy for each band for every printe steps
 out_band                       0 8  #output energy and band structure (with precision 8)
 out_dos                        0 #output energy and dos
-out_ldos                       0 3  #output local density of states, second parameter controls the precision
 out_mul                        0 #mulliken charge or not
 out_proj_band                  0 #output projected band structure
-out_level                      ie #ie(for electrons); i(for ions);
+out_level                      m #ie(for electrons); i(for ions);
 out_dm                         0 #>0 output density matrix
 out_dm1                        0 #>0 output density matrix (multi-k points)
 out_bandgap                    0 #if true, print out bandgap
 out_mat_hs                     0 8  #output H and S matrix (with precision 8)
 out_mat_tk                     0 8  #output T(k)
 out_mat_hs2                    0 #output H(R) and S(R) matrix
-out_mat_l                      0 8  #output the expectation values of angular momentum operators
 out_mat_dh                     0 #output of derivative of H(R) matrix
 out_mat_xc                     0 #output exchange-correlation matrix in KS-orbital representation
-out_mat_xc2                    0 #output exchange-correlation matrix in NAO representation
 out_eband_terms                0 #output the band energy terms separately
 out_hr_npz                     0 #output hr(I0,JR) submatrices in npz format
 out_dm_npz                     0 #output dmr(I0,JR) submatrices in npz format
@@ -358,7 +323,6 @@ dos_edelta_ev                  0.01 #delta energy for dos
 dos_scale                      0.01 #scale dos range by
 dos_sigma                      0.07 #gauss b coefficeinet(default=0.07)
 dos_nche                       100 #orders of Chebyshev expansions for dos
-stm_bias                       1 0.1 1  #bias voltage used to calculate ldos
 cal_cond                       0 #calculate electronic conductivities
 cond_che_thr                   1e-08 #control the error of Chebyshev expansions for conductivities
 cond_dw                        0.1 #frequency interval for conductivities
@@ -400,7 +364,7 @@ sigma_k                        0.6 #the width of the diffuse cavity
 nc_k                           0.00037 #the cut-off charge density
 
 #Parameters (14.vdW Correction)
-vdw_method                     d3_bj #the method of calculating vdw (none ; d2 ; d3_0 ; d3_bj
+vdw_method                     none #the method of calculating vdw (none ; d2 ; d3_0 ; d3_bj
 vdw_s6                         default #scale parameter of d2/d3_0/d3_bj
 vdw_s8                         default #scale parameter of d3_0/d3_bj
 vdw_a1                         default #damping parameter of d3_0/d3_bj
@@ -412,7 +376,7 @@ vdw_c6_unit                    Jnm6/mol #unit of C6, Jnm6/mol or eVA6
 vdw_r0_file                    default #filename of R0
 vdw_r0_unit                    A #unit of R0, A or Bohr
 vdw_cutoff_type                radius #expression model of periodic structure, radius or period
-vdw_cutoff_radius              95 #radius cutoff for periodic structure
+vdw_cutoff_radius              0 #radius cutoff for periodic structure
 vdw_radius_unit                Bohr #unit of radius cutoff for periodic structure
 vdw_cn_thr                     40 #radius cutoff for cn
 vdw_cn_thr_unit                Bohr #unit of cn_thr, Bohr or Angstrom
@@ -443,7 +407,7 @@ exx_distribute_type            htime #exx_distribute_type
 exx_opt_orb_lmax               0 #the maximum l of the spherical Bessel functions for opt ABFs
 exx_opt_orb_ecut               0 #the cut-off of plane wave expansion for opt ABFs
 exx_opt_orb_tolerence          0 #the threshold when solving for the zeros of spherical Bessel functions for opt ABFs
-exx_symmetry_realspace         1 #whether to reduce real-space sector in Hexx calculation
+exx_symmetry_realspace         0 #whether to reduce real-space sector in Hexx calculation
 rpa_ccp_rmesh_times            10 #how many times larger the radial mesh required for calculating Columb potential is to that of atomic orbitals
 out_ri_cv                      0 #Whether to output the coefficient tensor C and ABFs-representation Coulomb matrix V
 
@@ -517,5 +481,3 @@ ri_hartree_benchmark           none #whether to use the RI approximation for the
 aims_nbasis                     #the number of basis functions for each atom type used in FHI-aims (for benchmark)
 rdmft                          0 #whether to perform rdmft calculation, default is false
 rdmft_power_alpha              0.656 #the alpha parameter of power-functional, g(occ_number) = occ_number^alpha used in exx-type functionals such as muller and power
-exxace                         1 #whether to perform ace calculation in exxpw
-exx_gamma_extrapolation        1 #whether to perform gamma extrapolation in exxpw
