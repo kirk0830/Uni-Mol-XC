@@ -5,10 +5,15 @@ feasible to catch information that is not local.
 
 # built-in modules
 import os
+import re
 import unittest
+import shutil
+import time
+import json
 from typing import Callable
 
 # third-party modules
+import numpy as np
 from torch import nn
 import torch
 import torch.optim as optim
@@ -24,8 +29,8 @@ except ImportError:
 from UniMolXC.network.utility.xcloss import tminnesota
 from UniMolXC.geometry.repr._deepmd import \
     generate_from_abacus as descgen
-from UniMolXC.utility.easyassert import loggingassert as \
-    lgassert
+from UniMolXC.utility.easyassert import \
+    loggingassert as lgassert
 
 def build_dataset_from_abacus(folders,
                               labels,
@@ -74,8 +79,8 @@ def build_dataset_from_abacus(folders,
         testfiles = os.path.dirname(__file__)
         testfiles = os.path.dirname(testfiles)
         testfiles = os.path.dirname(testfiles)
-        f_descmodel = os.path.join(testfiles, 'testfiles',
-            'dpa3-2p4-7m-mptraj.pth')
+        f_descmodel = os.path.join(
+            testfiles, 'testfiles', 'dpa3-2p4-7m-mptraj.pth')
     assert os.path.exists(f_descmodel), \
         f'{f_descmodel} does not exist, please provide a valid DeePMD model file'
     
@@ -84,12 +89,10 @@ def build_dataset_from_abacus(folders,
     dpmodel = DeepPot(f_descmodel)
     
     # generate the descriptors for each folder
-    return [
-        torch.tensor(descgen(f, dpmodel), 
-                     dtype=torch.float32,
-                     requires_grad=True)
-        for f in folders
-    ], labels
+    return [torch.tensor(descgen(f, dpmodel), 
+                         dtype=torch.float32,
+                         requires_grad=True)
+            for f in folders], labels
 
 class TestBuildXCPNetDataset(unittest.TestCase):
     def setUp(self):
@@ -179,7 +182,7 @@ class TestLinearResidualNet(unittest.TestCase):
         self.assertEqual(model.layers[1].out_features, 30)
         self.assertEqual(model.layers[2].in_features, 30)
         self.assertEqual(model.layers[2].out_features, 2)
-        
+
     def test_forward(self):
         model = LinearResidualNet(10, [20, 30], nfeatures=2)
         print('\n'
@@ -222,7 +225,7 @@ class TestLinearResidualNet(unittest.TestCase):
         print('done.', flush=True)
         print('Test the residual connection in LinearResidualNet finished.',
               flush=True)
-        
+
     def test_backward(self):
         model = LinearResidualNet(10, [20, 30], nfeatures=2)
         x = torch.randn(5, 10, requires_grad=True)
@@ -231,7 +234,7 @@ class TestLinearResidualNet(unittest.TestCase):
         loss.backward()
         self.assertIsNotNone(x.grad)
         self.assertEqual(x.grad.shape, (5, 10))
-        
+
     def test_train(self):
         ''' test the training process of the LinearResidualNet
         '''
@@ -284,6 +287,7 @@ class XCPNetImpl(nn.Module):
         the accuracy of quantum mechanics[J]. 
         Physical review letters, 2018, 120(14): 143001.
     '''
+
     def __init__(self, 
                  elem: list,
                  ndim: int=448,
@@ -309,8 +313,7 @@ class XCPNetImpl(nn.Module):
         ndim : int
             the input dimension, should be the number of dimension
             of the descriptor of one atom, default is 448, which
-            corresponds to the case of Deep Potential where the 
-            cutoff radius is 6.0 Angstrom
+            corresponds to the case of DPA3 MPtraj branch model
         nhidden : list of int, optional
             parameter for the sub-network for each element. The 
             number of neurons in each hidden layer. NOTE: if two
@@ -323,7 +326,10 @@ class XCPNetImpl(nn.Module):
         xc_loss : callable, optional
             XC loss function, by default None
             if None, the XC loss function is set to `tminnesota`
+        restart_from : str, optional
+            the path to the file to restart the model from, by default None
         '''
+
         super(XCPNetImpl, self).__init__()
         self.elem = elem
         self.ndim = ndim
@@ -334,7 +340,7 @@ class XCPNetImpl(nn.Module):
             LinearResidualNet(ndim, nhidden, nparam)
             for _ in elem
         ])
-    
+
     def encode_type_map(self, elem):
         '''
         convert the list of element symbols to a list of indices.
@@ -372,7 +378,7 @@ class XCPNetImpl(nn.Module):
         ----------
         x : torch.Tensor
             input tensor of shape (batch_size, nat, ndim). The 
-            so-called `batch_size` here alwyas corresponds to the 
+            so-called `batch_size` here always corresponds to the 
             number of trajectory frames.
         type_map : list of int
             a list of atom types for each atom in the input tensor,
@@ -405,7 +411,7 @@ class XCPNetImpl(nn.Module):
             for i, ityp in enumerate(type_map)
         ], dim=1) # in shape (batch_size, nat, nparam)
         return torch.mean(y, dim=1) # is taking average over atoms a good idea?
-    
+
     def loss(self,
              y,
              e,
@@ -423,9 +429,9 @@ class XCPNetImpl(nn.Module):
         e : torch.Tensor
             a tensor of shape (batch_size, nparam) containing the 
             energy terms calculated on all frames of the input tensor.
-        eref : float
-            the reference energy for the XC functional, 
-            e.g. the energy of the system calculated by DFT
+        eref : torch.Tensor
+            a tensor of shape (batch_size,) containing the reference
+            energy for each frame of the input tensor.
             
         Returns
         -------
@@ -436,7 +442,129 @@ class XCPNetImpl(nn.Module):
         loss_batch = torch.vstack([self.f_loss(coef, e, eref) for coef in y])
         return torch.mean(loss_batch)
 
+    def __savetorch__(self, fmodel):
+        torch.save(self.state_dict(), fmodel)
+
+    def save(self, path, timestamp=None):
+        '''
+        save the model to a path
+        
+        Parameters
+        ----------
+        path : str
+            the path to save the model
+        timestamp : str, optional
+            the timestamp to append to the filename. If not provided,
+            will use the timestring of the current time.
+        '''
+        mystate = {'elem': self.elem, 'save_path': path}
+        os.makedirs(path) # does not allow to overwrite the directory
+        
+        timestamp = timestamp or time.strftime('%Y%m%d%H%M%S')
+        ftorch = os.path.join(path, f'xcpnet.{timestamp}.pth')
+        mystate['ftorch'] = ftorch
+        self.__savetorch__(ftorch)
+
+        with open(os.path.join(path, 'xcpnet.json'), 'w') as f:
+            json.dump(mystate, f, indent=4)
+    
+    def __loadtorch__(self, fmodel):
+        if not os.path.exists(fmodel):
+            raise FileNotFoundError(f'{fmodel} does not exist')
+        self.load_state_dict(torch.load(fmodel))
+
+    @staticmethod
+    def __calcnetdim__(torch_model):
+        '''calculate the dimension of the network'''
+        indices = [re.match(r'^xcatomtyp_nets\.(\d+)\.layers\.(\d+)\.weight$', 
+                            k) for k in torch_model.keys()]
+        indices = [tuple(map(int, m.groups())) for m in indices if m is not None]
+        indices = sorted(indices, key=lambda x: (x[0], x[1]))
+        # indices is a list of tuples (atom_type_index, layer_index)
+        nelem = max(i for i, _ in indices) + 1
+        nlayer = len([j for i, j in indices if i == 0])
+        
+        # sanity checks
+        assert nlayer > 0
+        assert len(indices) == nelem * nlayer 
+        # assert the number of layers is the same for each atom type
+        
+        sizes = [tuple(torch_model[f'xcatomtyp_nets.0.layers.{i}.weight'].shape)
+                 for i in range(nlayer)]
+        ndim = sizes[0][1]  # the input dimension is the first layer's input size
+        nparam = sizes[-1][0]
+        nhidden = [s[1] for s in sizes[1:]]
+
+        return dict(zip(['nelem', 'ndim', 'nparam', 'nhidden'],
+                        [nelem, ndim, nparam, nhidden]))
+
+    @staticmethod
+    def load(path):
+        '''instantiate the XCPNetImpl object from a path'''
+        with open(os.path.join(path, 'xcpnet.json'), 'r') as f:
+            mystate = json.load(f)
+        
+        state = XCPNetImpl.__calcnetdim__(torch.load(mystate['ftorch']))
+        nelem, ndim, nparam, nhidden = state.values()
+        
+        assert nelem == len(mystate['elem'])
+        return XCPNetImpl(elem=mystate['elem'],
+                          ndim=ndim,
+                          nhidden=nhidden,
+                          nparam=nparam)
+
+    @staticmethod
+    def build_xcpnet(elem: list,
+                     model_size: dict = {'ndim': 448, 
+                                         'nparam': 1, 
+                                         'nhidden': [240, 240, 240]},
+                     f_loss: Callable = None,
+                     model_restart=None):
+        '''build the XCPNetImpl object
+        
+        Parameters
+        ----------
+        elem : list of str
+            the list of element symbols, e.g. ['H', 'O', 'C']
+        model_size : dict, optional
+            the size of the model, by default {'ndim': 448, 
+                                               'nparam': 1, 
+                                               'nhidden': [240, 240, 240]}
+        f_loss : Callable, optional
+            the loss function to use, by default None, which means
+            the XC loss function is set to `tminnesota`
+        model_restart : str, optional
+            the path to the file to restart the model from, by default None
+        
+        Returns
+        -------
+        XCPNetImpl
+            the XCPNetImpl object
+        '''
+        if model_restart is not None:
+            return XCPNetImpl.load(model_restart)
+        else:
+            return XCPNetImpl(elem=elem,
+                              ndim=model_size['ndim'],
+                              nhidden=model_size['nhidden'],
+                              nparam=model_size['nparam'],
+                              f_loss=f_loss)
+
 class TestXCPNetImpl(unittest.TestCase):
+    def setUp(self):
+        testfiles = os.path.dirname(__file__)
+        testfiles = os.path.dirname(testfiles)
+        testfiles = os.path.dirname(testfiles)
+        self.testfiles = os.path.abspath(os.path.join(testfiles, 'testfiles'))
+        self.scheduled_delete = []
+
+    def tearDown(self):
+        for f in self.scheduled_delete:
+            if os.path.isfile(f):
+                os.remove(f)
+            else:
+                shutil.rmtree(f)
+        self.scheduled_delete = []
 
     def test_init(self):
         model = XCPNetImpl(['H', 'O', 'C'], 
@@ -498,7 +626,7 @@ class TestXCPNetImpl(unittest.TestCase):
         # check if the loss is a scalar
         self.assertIsInstance(loss, torch.Tensor)
         self.assertEqual(loss.shape, ())
-    
+ 
     def test_backward(self):
         model = XCPNetImpl(['H', 'O'], ndim=10, nparam=2)
         
@@ -540,6 +668,8 @@ class TestXCPNetImpl(unittest.TestCase):
         # mock energy terms and reference energy
         e = torch.randn(5, 2, requires_grad=True)
         eref = torch.randn(5, requires_grad=True)
+        
+        # configure the optimizer
         optimizer = optim.Adam(model.parameters(), lr=0.01)
 
         model.train() # set the model to training mode
@@ -556,16 +686,31 @@ class TestXCPNetImpl(unittest.TestCase):
         print('Training process of XCPNetImpl finished.',
               flush=True)
 
-class XCPNetDataGuard:
-    '''a namespace for placing functions that are used to validate
-    the data for the XC parameterization network.'''
-    @staticmethod
-    def validate(data):
-        '''validate the data'''
-        # basic assertions
-        lgassert(isinstance(data, dict),
-            'data should be provided as a Python dictionary')
+    def test_save(self):
+        model = XCPNetImpl(['H', 'O'], ndim=10, nparam=2)
+        path_backup = os.path.join(self.testfiles, 'my-temporary-xcpnet')
+        self.scheduled_delete.append(path_backup)
+        model.save(path_backup)
+        self.assertTrue(os.path.exists(path_backup))
+        self.assertEqual(len(os.listdir(path_backup)), 2)
+        self.assertTrue(os.path.exists(os.path.join(path_backup, 'xcpnet.json')))
+
+    def test_load(self):
+        model = XCPNetImpl(['H', 'O'], ndim=10, nparam=2)
+        path_backup = os.path.join(self.testfiles, 'my-temporary-xcpnet')
+        self.scheduled_delete.append(path_backup)
+        model.save(path_backup)
         
+        # load the model from the saved path
+        loaded_model = XCPNetImpl.load(path_backup)
+        
+        self.assertTrue(isinstance(loaded_model, XCPNetImpl))
+        
+        # check if the loaded model has the same attributes
+        self.assertEqual(loaded_model.elem, ['H', 'O'])
+        self.assertEqual(loaded_model.ndim, 10)
+        self.assertEqual(loaded_model.nparam, 2)
+        self.assertEqual(len(loaded_model.xcatomtyp_nets), 2)
 
 class XCParameterizationNet:
     '''
@@ -575,91 +720,34 @@ class XCParameterizationNet:
     '''
     def __init__(self,
                  elem: list=None,
-                 model_size: dict = {'nparam': 1, 'nhidden': [240, 240, 240]},
+                 model_size: dict = {'ndim': 448, 
+                                     'nparam': 1, 
+                                     'nhidden': [240, 240, 240]},
                  model_restart=None):
-        '''instantiate the XCParameterizationNet object.
-        
-        Parameters
-        ----------
-        elem : list of str
-            the list of element symbols, e.g. ['H', 'O', 'C']
-            the number of elements will determine the number of
-            LinearResidualNet instances in the network. 
-            WARNING: this list should always contain all possible
-            elements throughout the training and testing
-            processes, otherwise the type map will not be correct!
-            For example, if the system1 has elements ['H', 'O']
-            and the system2 has elements ['H', 'C'], the elem
-            should be ['H', 'O', 'C'].
-        nhidden : list of int, optional
-            number of neurons in each hidden layer. NOTE: if two
-            adjacent layers have the same dimension, a residual 
-            block is used, by default [240, 240, 240], which means
-            3 hidden layers with 240 neurons each, connected by
-            residual blocks
-        nparam : int, optional
-            number of XC parameters, by default 1
-        '''
         # the kernel
         self.model = None
-        
-        # either from scratch or from a restart
-        assert (None not in [elem, model_size]) or \
-               (model_restart is not None)
-        
-        # from scratch
-        assert isinstance(elem, list) and len(elem) > 0, \
-            'elem should be a non-empty list of element symbols'
-        assert all(isinstance(e, str) for e in elem), \
-            'elem should be a list of strings representing element symbols'
-        
-        nhidden = model_size.get('nhidden', [240, 240, 240])
-        assert isinstance(nhidden, list) and len(nhidden) > 0, \
-            'nhidden should be a non-empty list of integers'
-        assert all(isinstance(n, int) and n > 0 for n in nhidden), \
-            'nhidden should be a list of positive integers'
-            
-        nparam = model_size.get('nparam', 1)
-        assert isinstance(nparam, int) and nparam > 0, \
-            'nparam should be a positive integer'
-        self.elem = elem
-        self.nhidden = nhidden
-        self.nparam = nparam        
-        self.model_restart_from = None
-        
-        # from file
-        if model_restart is not None:
-            raise NotImplementedError(
-                'Restart from a file is not implemented yet. '
-                'Please use the elem and model_size parameters to '
-                'instantiate the XCParameterizationNet object.')
 
-    def kfold_split(data, k_fold=5):
+        # model size
+        self.elem = elem
+        self.ndim = model_size.get('ndim', 448)
+        self.nhidden = model_size.get('nhidden', [240, 240, 240])
+        self.nparam = model_size.get('nparam', 1)
+
+    @staticmethod
+    def split_train_validation(data, ratio=0.8):
         '''
-        a simple implementation of k-fold split for the training data.
+        split the training data into training set and validation set with
+        given ratio. 
         
         Parameters
         ----------
         data : dict
-            the training data, should contain the following keys:
-            - 'type_map': list of list of int
-               the type map for each structure
-            - 'desc' : list of torch.Tensor
-               the descriptors for each structure, should be a list
-               of tensors with shape (nat, ndim), where nat is the
-               number of atoms in the structure and ndim is the
-               number of dimensions of the descriptor
-            - 'e' : list of torch.Tensor
-               the energy terms for each structure, should be a list
-               of tensors with shape (ncoef,), where ncoef is the
-               number of coefficients in the energy terms
-            - 'eref' : list of float
-               the reference energy for each structure, should be a list
-               of floats, which will be used as the reference value
-        k_fold : int, optional
-            the number of folds for k-fold cross validation, by default 5
-            which means the data will be split into 1/5 for validation
-            and 4/5 for training. The default value is 5.
+            the training data, see function train() for the details.
+        
+        ratio : float, optional
+            the ratio of the training set size to the whole dataset size, 
+            by default 0.8, which means 80% of the data will be used for 
+            training and 20% for validation.
         
         Returns
         -------
@@ -668,17 +756,44 @@ class XCParameterizationNet:
             and the second one is the validation set. Each dictionary
             contains the same keys as the input data.
         '''
-        datakeys = ['type_map', 'desc', 'e', 'eref']
+        def sort_then_merge(index):
+            '''sort the indices by the first order, then merge all
+            the indices of the same structure together, like from
+            [[0, 0], [0, 1], [0, 2], [1, 1]] to [[0, 1, 2], [1]]'''
+            index = torch.tensor(index, dtype=torch.long)
+            sorted_indices = torch.argsort(index[:, 0])
+            index = index[sorted_indices]
+            temp = index[:, 0]
+            ifirst, _, counts = torch.unique(temp, return_inverse=True, return_counts=True)
+            iaccum = torch.cat([torch.tensor([0]), torch.cumsum(counts, dim=0)])
+            return ifirst.tolist(), [index[iaccum[i]:iaccum[i + 1], 1].tolist()
+                                     for i in range(len(ifirst))]
         
-        # randomly select the indices for training and validation
-        irnd = torch.randperm(len(data['desc']))
-        n_train = int(len(data['desc']) * (k_fold - 1) / k_fold)
+        # randomly select indices for training set for each structure
+        n = sum([len(d) for d in data['desc']])
+        indexing = [[i, j] for i, d in enumerate(data['desc'])
+                    for j in range(len(d))]  # (structure index, batch index)
+        # reshuffle the indices
+        indexing = torch.tensor(indexing, dtype=torch.int64)[torch.randperm(n)]
+        # split the indices into training and validation sets
+        ntrain = int(n * ratio)
         
-        return dict(zip(datakeys, [[data[key][i] for i in irnd[:n_train]] 
-                                   for key in datakeys])), \
-               dict(zip(datakeys, [[data[key][i] for i in irnd[n_train:]]
-                                   for key in datakeys]))
-    
+        imol, ibatch = sort_then_merge(indexing[:ntrain, :].tolist())
+        trainset = {
+            'atoms': [data['atoms'][i]   for i    in imol],
+            'desc':  [data['desc'][i][j] for i, j in zip(imol, ibatch)],
+            'e':     [data['e'][i][j]    for i, j in zip(imol, ibatch)],
+            'eref':  [data['eref'][i][j] for i, j in zip(imol, ibatch)]
+        }
+        imol, ibatch = sort_then_merge(indexing[ntrain:, :].tolist())
+        validset = {
+            'atoms': [data['atoms'][i]   for i    in imol],
+            'desc':  [data['desc'][i][j] for i, j in zip(imol, ibatch)],
+            'e':     [data['e'][i][j]    for i, j in zip(imol, ibatch)],
+            'eref':  [data['eref'][i][j] for i, j in zip(imol, ibatch)]
+        }
+        return trainset, validset
+
     def train(self,
               data,
               epochs=10,
@@ -698,104 +813,195 @@ class XCParameterizationNet:
         ----------
         data : dict
             the training data, should contain the following keys:
-            - 'type_map': list of list of int
-               the type map for each structure
-            - 'desc' : list of torch.Tensor
-               the descriptors for each structure, should be a list
-               of tensors with shape (nat, ndim), where nat is the
-               number of atoms in the structure and ndim is the
-               number of dimensions of the descriptor
-            - 'e' : list of torch.Tensor
-               the energy terms for each structure, should be a list
-               of tensors with shape (ncoef,), where ncoef is the
-               number of coefficients in the energy terms
-            - 'eref' : list of float
-               the reference energy for each structure, should be a list
-               of floats, which will be used as the reference value
+            
+            - 'atoms': list of list of str
+            
+               the element symbols for each structure, should be a list
+               of lists, where each list contains the element symbols
+               of the atoms in the structure, e.g. [['H', 'O'], ['C', 'H']]
+               
+            - 'desc': list of torch.Tensor
+            
+               the counterpart of the `coordinates` in the Uni-mol API.
+               should be a list of tensors with shape (batch_size, nat, ndim), 
+               where `batch_size` can be the length of molecular dynamics 
+               simulation trajectory, `nat` is the number of atoms in the 
+               structure and `ndim` is the number of dimensions of the 
+               descriptor. For different element, the dimensions can be 
+               different
+               
+            - 'e': list of torch.Tensor
+            
+               should be a list of tensors with shape (batch_size, ncoef).
+               For each "row" in the tensor, it contains the energy terms
+               calculated on the structure.
+               
+            - 'eref': list of torch.Tensor
+            
+               should be a list of tensors with shape (batch_size,).
+               For each "row" in the tensor, it contains the reference
+               energy for the structure.
+               
         epochs : int, optional
             the number of epochs for training, by default 10
+            
         batch_size : int, optional
             the batch size for training, by default 16
+            
         f_loss : callable, optional
             the loss function for training, by default None,
             which means the tminnesota loss function will be used
+            
         save_path : str, optional
             the path to save the trained model, by default None,
             which means the model will not be saved
+            
         **kwargs : dict
             other parameters for the training process, such as
             learning rate, optimizer, etc. These parameters will
             be passed to the training process.
         '''
-        ndim = data['desc'][0].shape[-1]
-        self.model = XCPNetImpl(
-            self.elem, 
-            ndim=ndim, 
-            nhidden=self.nhidden, 
-            nparam=self.nparam,
-            f_loss=f_loss
-        )
-        
+        # allocate the trainable model
+        self.model = XCPNetImpl(elem=self.elem, 
+                                ndim=self.ndim, 
+                                nhidden=self.nhidden, 
+                                nparam=self.nparam,
+                                f_loss=f_loss)       
+
         # split data into train and validation sets
-        trainset, validset = XCParameterizationNet.kfold_split(
-            data=data,
-            k_fold=kwargs.get('k_fold', 5))
+        trainset, validset = XCParameterizationNet.split_train_validation(
+            data=data, ratio=kwargs.get('train_data_split_ratio', 0.8))
         
-        # train the model
         optimizer = optim.Adam(self.model.parameters(), lr=kwargs.get('lr', 0.01))
-        print(f'{"EPOCH":<10} {"TRAIN LOSS":<15} {"VALID LOSS":<15}', flush=True)
+        print('\n'
+              f'{"EPOCH":<10} {"Train loss":<15} {"Validation loss":<15}', flush=True)
         print('-' * (10+1+15+1+15), flush=True)
         for iepoch in range(epochs):
-            
             # train
             self.model.train() # switch to training mode
             train_loss = 0.0
-            for i in range(0, len(trainset['desc']), batch_size):
-                desc_batch = trainset['desc'][i:i + batch_size]
-                type_map_batch = trainset['type_map'][i:i + batch_size]
-                e_batch = trainset['e'][i:i + batch_size]
-                eref_batch = trainset['eref'][i:i + batch_size]
-                
-                # stack the descriptors and targets
-                desc_tensor = torch.stack(desc_batch)
-                e_tensor = torch.stack(e_batch)
-                eref_tensor = torch.tensor(eref_batch, dtype=torch.float32)
-                
-                optimizer.zero_grad() # clean the gradients
-                y = self.model.forward(x=desc_tensor,
-                                       type_map=type_map_batch)
-                loss_ = self.model.loss(y=y, 
-                                        e=e_tensor, 
-                                        eref=eref_tensor)
-                loss_.backward() # write the gradients
-                optimizer.step()
-                train_loss += loss_.item() / (len(trainset['desc']) // batch_size)
-
-            # validation
-            self.model.eval() # switch to evaluation mode
+            for atoms, desc, e, eref in zip(*trainset.values()): # loop over systems
+                type_map = self.model.encode_type_map(atoms)
+                # if there are batches more than the batch size, we need to
+                # split the data into batches, otherwise, we can just use 
+                # the whole data
+                nbatch = len(desc)
+                if nbatch > batch_size:
+                    for i in range(0, nbatch, batch_size):
+                        lo, hi = i, min(i + batch_size, nbatch)
+                        x = desc[lo:hi]
+                        y = self.model.forward(x, type_map)
+                        loss = self.model.loss(y, e[lo:hi], eref[lo:hi])
+                        optimizer.zero_grad()
+                        loss.backward(retain_graph=True)
+                        optimizer.step()
+                        train_loss += loss.item() * (hi - lo)
+                else:
+                    x = desc
+                    y = self.model.forward(x, type_map)
+                    loss = self.model.loss(y, e, eref)
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
+                    train_loss += loss.item() * nbatch
+            train_loss /= len(trainset['desc'])
+            
+            # validate
+            self.model.eval()
             valid_loss = 0.0
             with torch.no_grad():
-                for i in range(0, len(validset['desc']), batch_size):
-                    desc_batch = validset['desc'][i:i + batch_size]
-                    type_map_batch = validset['type_map'][i:i + batch_size]
-                    e_batch = validset['e'][i:i + batch_size]
-                    eref_batch = validset['eref'][i:i + batch_size]
-                    
-                    # stack the descriptors and targets
-                    desc_tensor = torch.stack(desc_batch)
-                    e_tensor = torch.stack(e_batch)
-                    eref_tensor = torch.tensor(eref_batch, dtype=torch.float32)
-                    
-                    loss_ = self.model.loss(x=desc_tensor,
-                                            type_map=type_map_batch, 
-                                            e=e_tensor, 
-                                            eref=eref_tensor)
-                    valid_loss += loss_.item() / (len(validset['desc']) // batch_size)
-            
-            # print the loss
-            print(f'{iepoch+1:<10} {train_loss:<15.4f} {valid_loss:<15.4f}', 
-                  flush=True)
+                for atoms, desc, e, eref in zip(*validset.values()):
+                    type_map = self.model.encode_type_map(atoms)
+                    x = desc
+                    y = self.model.forward(x, type_map)
+                    loss = self.model.loss(y, e, eref)
+                    valid_loss += loss.item() * len(desc)
+            valid_loss /= len(validset['desc'])
+            print(f'{iepoch:>10} {train_loss:>15.4f} {valid_loss:>15.4f}', flush=True)
 
+class TestXCParameterizationNet(unittest.TestCase):
+    def setUp(self):
+        self.testfiles = os.path.abspath(os.path.join(
+            os.path.dirname(__file__), 'testfiles'))
+        self.scheduled_delete = []
+
+    def tearDown(self):
+        for f in self.scheduled_delete:
+            if os.path.isfile(f):
+                os.remove(f)
+            else:
+                shutil.rmtree(f)
+        self.scheduled_delete = []
+
+    def test_split_train_validation(self):
+        # mock data
+        data = {
+            'atoms': [['H', 'H', 'O'], ['C', 'H', 'H', 'H', 'H']],
+            'desc': [torch.randn(5, 3, 10), torch.randn(5, 5, 10)],
+            'e': [torch.randn(5, 1), torch.randn(5, 1)],
+            'eref': [torch.randn(5), torch.randn(5)]
+        }
+        
+        trainset, validset = XCParameterizationNet.split_train_validation(data, ratio=0.8)
+        # check the keys
+        self.assertEqual(set(trainset.keys()), set(validset.keys()))
+        self.assertEqual(set(trainset.keys()), {'atoms', 'desc', 'e', 'eref'})
+        
+        # there are two systems, so the length of atoms should be no larger than 2
+        self.assertLessEqual(len(trainset['atoms']), 2)
+        self.assertLessEqual(len(trainset['desc']),  2)
+        self.assertLessEqual(len(trainset['e']),     2)
+        self.assertLessEqual(len(trainset['eref']),  2)
+        # check the iterability of the data
+        n = len(trainset['atoms'])
+        self.assertTrue(all(n == len(v) for v in trainset.values()))
+        self.assertEqual(n, len(list(zip(*trainset.values()))))
+        
+        self.assertLessEqual(len(validset['atoms']), 2)
+        self.assertLessEqual(len(validset['desc']),  2)
+        self.assertLessEqual(len(validset['e']),     2)
+        self.assertLessEqual(len(validset['eref']),  2)
+        # check the iterability of the data
+        n = len(validset['atoms'])
+        self.assertTrue(all(n == len(v) for v in validset.values()))
+        self.assertEqual(n, len(list(zip(*validset.values()))))
+        
+        # there are in total 10 frames, 8 for training and 2 for validation
+        self.assertEqual(sum(len(d)    for d    in trainset['desc']), 8)
+        self.assertEqual(sum(len(e)    for e    in trainset['e']),    8)
+        self.assertEqual(sum(len(eref) for eref in trainset['eref']), 8)
+        self.assertEqual(sum(len(d)    for d    in validset['desc']), 2)
+        self.assertEqual(sum(len(e)    for e    in validset['e']),    2)
+        self.assertEqual(sum(len(eref) for eref in validset['eref']), 2)
+    
+    def test_train(self):
+        # mock data: water and methane
+        data = {
+            'atoms': [['H', 'H', 'O'], ['C', 'H', 'H', 'H', 'H']],
+            'desc': [torch.randn(5, 3, 10, requires_grad=True), 
+                     torch.randn(5, 5, 10, requires_grad=True)],
+            'e': [torch.randn(5, 1, requires_grad=True), 
+                  torch.randn(5, 1, requires_grad=True)],
+            'eref': [torch.randn(5, requires_grad=True), 
+                     torch.randn(5, requires_grad=True)]
+        }
+        
+        # train
+        trainer = XCParameterizationNet(elem=['H', 'O', 'C'], 
+                                        model_size={'ndim': 10, 
+                                                    'nparam': 1, 
+                                                    'nhidden': [20, 20, 20]})
+        trainer.train(data, epochs=2, batch_size=2, f_loss=tminnesota)
+        # check if the model is instantiated
+        self.assertIsNotNone(trainer.model)
+        self.assertTrue(isinstance(trainer.model, XCPNetImpl))
+        # check if the model has the correct attributes
+        self.assertEqual(trainer.model.elem, ['H', 'O', 'C'])
+        self.assertEqual(trainer.model.ndim, 10)
+        self.assertEqual(trainer.model.nparam, 1)
+        self.assertEqual(len(trainer.model.xcatomtyp_nets), 3)
+        self.assertTrue(all(isinstance(net, LinearResidualNet) 
+                            for net in trainer.model.xcatomtyp_nets))
         
 if __name__ == '__main__':
     # run unit tests

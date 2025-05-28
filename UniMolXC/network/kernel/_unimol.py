@@ -303,6 +303,8 @@ class UniMolRegressionNet:
         
         # from file
         if model_restart is not None:
+            # instantiate the self.model with MolPredict for
+            # instant inference
             self.model = MolPredict(load_model=model_restart)
             self.model_restart_from = model_restart
     
