@@ -347,7 +347,7 @@ class AbacusJobTest(unittest.TestCase):
         self.assertEqual(job.fn_istate, os.path.join(job.outdir, 'istate.info'))
         self.assertTrue(job.complete)
     
-    def test_to_deepmd(self):
+    def test_to_deepmd_scf(self):
         try:
             import dpdata
         except ImportError:
@@ -364,6 +364,19 @@ class AbacusJobTest(unittest.TestCase):
         self.assertTrue(all(os.path.exists(os.path.join(dppath, f))
                         for f in ['box.raw', 'coord.raw', 'type_map.raw', 'type.raw']))
         shutil.rmtree(dppath)
+
+    def test_to_deepmd_md(self):
+        '''test the case that convert the Molecular Dynamics trajectory
+        to the DeePMD-kit compatiable format'''
+        try:
+            import dpdata
+        except ImportError:
+            # skip the test if dpdata is not installed
+            self.skipTest('DPData is not installed. The unittest of function '
+                          '`to_deepmd` is skipped. '
+                          'Please install it with `pip install dpdata`.')
+        jobdir = os.path.join(self.testfiles, 'md-finished')
+
 
     def test_build_derived(self):
         jobdir = os.path.join(self.testfiles, 'scf-unfinished')

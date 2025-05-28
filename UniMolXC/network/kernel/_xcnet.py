@@ -24,6 +24,8 @@ except ImportError:
 from UniMolXC.network.utility.xcloss import tminnesota
 from UniMolXC.geometry.repr._deepmd import \
     generate_from_abacus as descgen
+from UniMolXC.utility.easyassert import loggingassert as \
+    lgassert
 
 def build_dataset_from_abacus(folders,
                               labels,
@@ -257,10 +259,17 @@ class TestLinearResidualNet(unittest.TestCase):
 
 class XCPNetImpl(nn.Module):
     '''
-    a machine learning based prediction of the XC parameterization
-    on functionals with analytical form. This net is designed
-    for predicting the XC coefficients for each atom type.
-    Within one type, all atom types share the same network. 
+    a machine-learning-based prediction of the parameterization 
+    on XC functionals that with analytical form. 
+    
+    This net contains several sub-network and one for each atom 
+    type.
+    
+    Each time this net accepts a trajectory of one structure,
+    output corresponding number of sets of XC parameters. For
+    different structures (different chemical composition, 
+    different number of atoms, etc.), this model now is designed
+    to be re-trained.
     
     This network construction is referred from the Deep potential
     paper: 
@@ -287,21 +296,23 @@ class XCPNetImpl(nn.Module):
         Parameters
         ----------
         elem : list of str
-            the list of element symbols, e.g. ['H', 'O', 'C']
+            the overall list of element symbols, e.g. ['H', 'O', 'C']
             the number of elements will determine the number of
             LinearResidualNet instances in the network. 
-            WARNING: this list should always contain all possible
+            NOTE: this list should always contain all possible
             elements throughout the training and testing
             processes, otherwise the type map will not be correct!
             For example, if the system1 has elements ['H', 'O']
             and the system2 has elements ['H', 'C'], the elem
-            should be ['H', 'O', 'C'].
+            should be ['H', 'O', 'C'], and no extra elements should
+            appear later.
         ndim : int
             the input dimension, should be the number of dimension
             of the descriptor of one atom, default is 448, which
-            corresponds to the case of Deep Potential that cutoff
-            radius is 6.0 Angstrom
+            corresponds to the case of Deep Potential where the 
+            cutoff radius is 6.0 Angstrom
         nhidden : list of int, optional
+            parameter for the sub-network for each element. The 
             number of neurons in each hidden layer. NOTE: if two
             adjacent layers have the same dimension, a residual 
             block is used, by default [240, 240, 240], which means
@@ -311,21 +322,25 @@ class XCPNetImpl(nn.Module):
             number of XC parameters, by default 1
         xc_loss : callable, optional
             XC loss function, by default None
-            if None, the XC loss function is set to tminnesota
+            if None, the XC loss function is set to `tminnesota`
         '''
         super(XCPNetImpl, self).__init__()
         self.elem = elem
         self.ndim = ndim
         self.nparam = nparam
         self.f_loss = f_loss if f_loss is not None else tminnesota
+        # instantiate all sub-networks for each atom type
         self.xcatomtyp_nets = nn.ModuleList([
             LinearResidualNet(ndim, nhidden, nparam)
             for _ in elem
         ])
     
-    def get_type_map(self, elem):
+    def encode_type_map(self, elem):
         '''
-        get the type map for the input element list
+        convert the list of element symbols to a list of indices.
+        NOTE: this encoding may vary from network instance, so 
+        this is a method of the XCPNetImpl class, instead of a
+        static method.
         
         Parameters
         ----------
@@ -350,17 +365,20 @@ class XCPNetImpl(nn.Module):
                 x, 
                 type_map):
         '''
-        the forward propagation of the XCPNetImpl for one
+        the forward propagation of the XCPNetImpl for ONE
         structure.
         
         Parameters
         ----------
         x : torch.Tensor
-            input tensor of shape (batch_size, nat, ndim).
+            input tensor of shape (batch_size, nat, ndim). The 
+            so-called `batch_size` here alwyas corresponds to the 
+            number of trajectory frames.
         type_map : list of int
             a list of atom types for each atom in the input tensor,
             should be of length nat, where nat is the number of atoms
-            in the input tensor
+            in the input tensor. It is assumed all frames share the
+            identical type_map.
             
         Returns
         -------
@@ -383,14 +401,13 @@ class XCPNetImpl(nn.Module):
             f'input tensor x should have ndim={self.ndim}, but got {ndim}'
 
         y = torch.stack([
-            self.xcatomtyp_nets[ityp].forward(x[:, i, :])
+            self.xcatomtyp_nets[ityp].forward(x[:, i, :]) # x in shape (batch_size, nat, ndim)
             for i, ityp in enumerate(type_map)
-        ], dim=1)
-        return torch.mean(y, dim=1)
+        ], dim=1) # in shape (batch_size, nat, nparam)
+        return torch.mean(y, dim=1) # is taking average over atoms a good idea?
     
     def loss(self,
-             x,
-             type_map,
+             y,
              e,
              eref):
         '''
@@ -399,14 +416,13 @@ class XCPNetImpl(nn.Module):
         
         Parameters
         ----------
-        x : torch.Tensor
-            input tensor of shape (batch_size, nat, ndim)
-        type_map : list of int
-            a list of atom types for each atom in the input tensor,
-            should be of length nat, where nat is the number of atoms
-            in the input tensor
+        y : torch.Tensor
+            the output of forward() method, a tensor of shape
+            (batch_size, nparam) containing the XC parameters
+            calculated on all frames of the input tensor.
         e : torch.Tensor
-            a tensor of shape (ncoef,) containing the energy terms
+            a tensor of shape (batch_size, nparam) containing the 
+            energy terms calculated on all frames of the input tensor.
         eref : float
             the reference energy for the XC functional, 
             e.g. the energy of the system calculated by DFT
@@ -417,11 +433,7 @@ class XCPNetImpl(nn.Module):
             the loss value, which is the XC loss function value
             calculated by the XC loss function defined in f_loss
         '''
-        coef_batch = self.forward(x, type_map)
-        loss_batch = torch.vstack([
-            self.f_loss(coef, e, eref)
-            for coef in coef_batch
-        ])
+        loss_batch = torch.vstack([self.f_loss(coef, e, eref) for coef in y])
         return torch.mean(loss_batch)
 
 class TestXCPNetImpl(unittest.TestCase):
@@ -441,14 +453,14 @@ class TestXCPNetImpl(unittest.TestCase):
                             for net in model.xcatomtyp_nets))
         self.assertTrue(callable(model.f_loss))
 
-    def test_get_type_map(self):
+    def test_encode_type_map(self):
         model = XCPNetImpl(['H', 'O', 'C'])
-        type_map = model.get_type_map(['H', 'O', 'C', 'H'])
+        type_map = model.encode_type_map(['H', 'O', 'C', 'H'])
         self.assertEqual(type_map, [0, 1, 2, 0])
         
         # test with an element not in the list
         with self.assertRaises(ValueError):
-            model.get_type_map(['H', 'O', 'N'])
+            model.encode_type_map(['H', 'O', 'N'])
         # 'N' is not in the list ['H', 'O', 'C']
         # so it should raise a ValueError
 
@@ -462,34 +474,26 @@ class TestXCPNetImpl(unittest.TestCase):
         type_map = [0, 0, 1]
         
         # forward one structure
-        output = model.forward(x, type_map)
+        y = model.forward(x, type_map)
         
         # checks
-        self.assertEqual(output.shape, (5, 2)) # 5 batches, 2 parameters
-        self.assertTrue(isinstance(output, torch.Tensor))
+        self.assertEqual(y.shape, (5, 2)) # 5 batches, 2 parameters
+        self.assertTrue(isinstance(y, torch.Tensor))
         # check if the output is a tensor with requires_grad
-        self.assertTrue(output.requires_grad)
-        # check the gradient of the output
-        output.sum().backward()
-        self.assertIsNotNone(x.grad)
-        self.assertEqual(x.grad.shape, (5, 3, 10))
+        self.assertTrue(y.requires_grad)
         
     def test_loss(self):
         model = XCPNetImpl(['H', 'O'], ndim=10, nparam=2)
         
-        # mock descriptor for 5 batch size -> 5 structures
-        # 3 atoms, 10 dimensions
-        x = torch.randn(5, 3, 10, requires_grad=True)
-        
-        # mock type map for 3 atoms (2 H and 1 O)
-        type_map = [0, 0, 1]
+        # mock the output of forward() method
+        y = torch.randn(5, 2, requires_grad=True)  # 5 structures, 2 parameters
         
         # mock energy terms and reference energy
         e = torch.randn(5, 2, requires_grad=True)  # 5 structures, 2 parameters
         eref = torch.randn(5, requires_grad=True)  # 5 reference energies
         
         # calculate loss
-        loss = model.loss(x, type_map, e, eref)
+        loss = model.loss(y, e, eref)
         
         # check if the loss is a scalar
         self.assertIsInstance(loss, torch.Tensor)
@@ -509,7 +513,8 @@ class TestXCPNetImpl(unittest.TestCase):
         eref = torch.randn(5, requires_grad=True)  # 5 reference energies
         
         # calculate loss
-        loss = model.loss(x, type_map, e, eref)
+        y = model.forward(x, type_map)
+        loss = model.loss(y, e, eref)
         
         # backward propagation
         loss.backward()
@@ -521,7 +526,8 @@ class TestXCPNetImpl(unittest.TestCase):
     def test_train(self):
         ''' test the training process of the XCPNetImpl
         '''
-        print('Testing training process of XCPNetImpl...', 
+        print('\n'
+              'Testing training process of XCPNetImpl...', 
               flush=True)
         model = XCPNetImpl(['H', 'O'], ndim=10, nparam=2)
         
@@ -535,13 +541,14 @@ class TestXCPNetImpl(unittest.TestCase):
         e = torch.randn(5, 2, requires_grad=True)
         eref = torch.randn(5, requires_grad=True)
         optimizer = optim.Adam(model.parameters(), lr=0.01)
-        criterion = nn.MSELoss()
-        model.train()
+
+        model.train() # set the model to training mode
         print(f'{"IEPOCH":<10} {"LOSS":<10}', flush=True)
         print('-' * 21, flush=True)
         for iepoch in range(10):
             optimizer.zero_grad()
-            loss = model.loss(x, type_map, e, eref)
+            y = model.forward(x, type_map)
+            loss = model.loss(y, e, eref)
             print(f'{iepoch:>10} {loss.item():>10.4f}', flush=True)
             loss.backward()
             optimizer.step()
@@ -549,9 +556,22 @@ class TestXCPNetImpl(unittest.TestCase):
         print('Training process of XCPNetImpl finished.',
               flush=True)
 
+class XCPNetDataGuard:
+    '''a namespace for placing functions that are used to validate
+    the data for the XC parameterization network.'''
+    @staticmethod
+    def validate(data):
+        '''validate the data'''
+        # basic assertions
+        lgassert(isinstance(data, dict),
+            'data should be provided as a Python dictionary')
+        
+
 class XCParameterizationNet:
     '''
-    the wrapper of the XC parameterization net.
+    the trainer of XCPNetImpl, also the train-wrapped "inner train" kernel
+    of the whole XC parameterization network. This is a counterpart of the
+    Uni-Mol tools API (see UniMolXC/network/kernel/_unimol.py).
     '''
     def __init__(self,
                  elem: list=None,
@@ -728,7 +748,7 @@ class XCParameterizationNet:
         for iepoch in range(epochs):
             
             # train
-            self.model.train()
+            self.model.train() # switch to training mode
             train_loss = 0.0
             for i in range(0, len(trainset['desc']), batch_size):
                 desc_batch = trainset['desc'][i:i + batch_size]
@@ -741,17 +761,18 @@ class XCParameterizationNet:
                 e_tensor = torch.stack(e_batch)
                 eref_tensor = torch.tensor(eref_batch, dtype=torch.float32)
                 
-                optimizer.zero_grad()
-                loss_ = self.model.loss(x=desc_tensor, 
-                                        type_map=type_map_batch, 
+                optimizer.zero_grad() # clean the gradients
+                y = self.model.forward(x=desc_tensor,
+                                       type_map=type_map_batch)
+                loss_ = self.model.loss(y=y, 
                                         e=e_tensor, 
                                         eref=eref_tensor)
-                loss_.backward()
+                loss_.backward() # write the gradients
                 optimizer.step()
                 train_loss += loss_.item() / (len(trainset['desc']) // batch_size)
 
             # validation
-            self.model.eval()
+            self.model.eval() # switch to evaluation mode
             valid_loss = 0.0
             with torch.no_grad():
                 for i in range(0, len(validset['desc']), batch_size):

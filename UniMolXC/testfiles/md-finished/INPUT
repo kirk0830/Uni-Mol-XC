@@ -1,13 +1,24 @@
 INPUT_PARAMETERS
 #Parameters	(General)
+calculation     md
 pseudo_dir		../
 orbital_dir		../
 #Parameters (Accuracy)
-ecutwfc			 60 ###Energy cutoff needs to be tested to ensure your calculation is reliable.[1]
+ecutwfc			60 ###Energy cutoff needs to be tested to ensure your calculation is reliable.[1]
 scf_nmax		100
-scf_thr                 1e-6
+scf_thr         1e-6
 basis_type		lcao
-
+#Parameters (MD)
+md_type         nvt
+md_nstep        20
+md_dt           1.0 # fs
+md_thermostat   berendsen
+md_tlast        300 # K
+md_tfirst       300 # K
+md_dumpfreq     5
+#Parameters (output)
+out_stru        True
+out_chg         -1
 
 ### [1] Energy cutoff determines the quality of numerical quadratures in your calculations.
 ###     So it is strongly recommended to test whether your result (such as converged SCF energies) is

@@ -1,0 +1,381 @@
+                                                                                     
+                              ABACUS v3.8.4
+
+               Atomic-orbital Based Ab-initio Computation at UStc                    
+
+                     Website: http://abacus.ustc.edu.cn/                             
+               Documentation: https://abacus.deepmodeling.com/                       
+                  Repository: https://github.com/abacusmodeling/abacus-develop       
+                              https://github.com/deepmodeling/abacus-develop         
+                      Commit: b37790225 (Mon Dec 2 14:07:13 2024 +0800)
+
+ Wed May 28 14:00:51 2025
+ MAKE THE DIR         : OUT.ABACUS/
+ MAKE THE STRU DIR    : OUT.ABACUS/STRU/
+ RUNNING WITH DEVICE  : CPU / 13th Gen Intel(R) Core(TM) i7-13700KF
+ UNIFORM GRID DIM        : 36 * 36 * 36
+ UNIFORM GRID DIM(BIG)   : 12 * 12 * 12
+ DONE(0.0176116  SEC) : SETUP UNITCELL
+ DONE(0.018178   SEC) : INIT K-POINTS
+ ---------------------------------------------------------
+ Molecular Dynamics simulations
+ ---------------------------------------------------------
+ ENSEMBLE                 : NVT    mode: berendsen
+ Time interval(fs)        : 1
+ ---------------------------------------------------------
+ SPIN    KPOINTS         PROCESSORS  THREADS     NBASE       
+ 1       36              8           24          26          
+ ---------------------------------------------------------
+ Use Systematically Improvable Atomic bases
+ ---------------------------------------------------------
+ ELEMENT ORBITALS        NBASE       NATOM       XC          
+ Si      2s2p1d-8au      13          2           
+ ---------------------------------------------------------
+ Initial plane wave basis and FFT box
+ ---------------------------------------------------------
+ DONE(0.019714   SEC) : INIT PLANEWAVE
+ DONE(0.110664   SEC) : LOCAL POTENTIAL
+ ----------------------------------- INIT VEL ---------------------------------------
+ RANDOM VEL ACCORDING TO INITIAL TEMPERATURE: 300 K
+ ------------------------------------- DONE -----------------------------------------
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 0
+ -------------------------------------------
+ START CHARGE      : atomic
+ DONE(0.167075   SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13624914e+02   0.00000000e+00   1.7044e-01   0.18
+ GE2     -2.13662196e+02  -3.72814328e-02   3.4611e-02   0.10
+ GE3     -2.13664572e+02  -2.37639597e-03   2.9635e-03   0.11
+ GE4     -2.13664573e+02  -9.65525520e-07   1.3697e-04   0.13
+ GE5     -2.13664573e+02  -5.33693367e-08   1.9619e-05   0.12
+ GE6     -2.13664573e+02  -2.09829149e-09   1.5539e-06   0.10
+ GE7     -2.13664573e+02   6.43947504e-10   5.0176e-08   0.18
+ ------------------------------------------------------------------------------------------------
+ Energy (Ry)         Potential (Ry)      Kinetic (Ry)        Temperature (K)     
+ -15.7012            -15.7041            0.00285013          300                 
+ ------------------------------------------------------------------------------------------------
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 1
+ -------------------------------------------
+ DONE(1.19338    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13658568e+02   0.00000000e+00   5.5427e-03   0.20
+ GE2     -2.13658634e+02  -6.64942233e-05   1.1703e-03   0.11
+ GE3     -2.13658635e+02  -3.79939106e-07   7.8560e-05   0.12
+ GE4     -2.13658635e+02  -2.02109706e-08   1.2228e-05   0.11
+ GE5     -2.13658635e+02   4.83661517e-10   3.6206e-06   0.12
+ GE6     -2.13658635e+02  -4.39723048e-10   4.6549e-07   0.10
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 2
+ -------------------------------------------
+ DONE(2.06065    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13642427e+02   0.00000000e+00   6.7632e-04   0.12
+ GE2     -2.13642428e+02  -7.40015389e-07   1.4264e-04   0.10
+ GE3     -2.13642428e+02  -1.10325193e-08   1.4774e-05   0.13
+ GE4     -2.13642428e+02  -1.24120132e-09   4.0012e-06   0.16
+ GE5     -2.13642428e+02   1.19054399e-10   7.1047e-07   0.10
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 3
+ -------------------------------------------
+ DONE(2.78724    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13618344e+02   0.00000000e+00   1.7378e-03   0.11
+ GE2     -2.13618350e+02  -5.98609996e-06   3.4549e-04   0.12
+ GE3     -2.13618350e+02  -5.23511388e-08   2.9956e-05   0.11
+ GE4     -2.13618350e+02  -9.81628413e-09   9.1002e-06   0.11
+ GE5     -2.13618350e+02  -4.18478871e-10   1.3658e-06   0.12
+ GE6     -2.13618350e+02  -5.58414918e-10   1.4084e-07   0.11
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 4
+ -------------------------------------------
+ DONE(3.57676    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13588723e+02   0.00000000e+00   1.0629e-03   0.12
+ GE2     -2.13588727e+02  -4.25358354e-06   1.8777e-04   0.10
+ GE3     -2.13588727e+02  -3.17771320e-08   2.1481e-05   0.11
+ GE4     -2.13588727e+02  -2.45787154e-09   4.7707e-06   0.11
+ GE5     -2.13588727e+02   7.93889342e-10   1.1573e-06   0.11
+ GE6     -2.13588727e+02  -9.82525067e-10   9.5513e-08   0.11
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 5
+ -------------------------------------------
+ DONE(4.34059    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13556258e+02   0.00000000e+00   1.1486e-03   0.12
+ GE2     -2.13556266e+02  -7.58224390e-06   1.8185e-04   0.11
+ GE3     -2.13556266e+02  -6.06304466e-08   3.0700e-05   0.19
+ GE4     -2.13556266e+02  -1.47249458e-09   5.1679e-06   0.10
+ GE5     -2.13556266e+02  -3.38456720e-10   1.4609e-06   0.12
+ GE6     -2.13556266e+02  -7.30374327e-10   1.0327e-07   0.10
+ ------------------------------------------------------------------------------------------------
+ Energy (Ry)         Potential (Ry)      Kinetic (Ry)        Temperature (K)     
+ -15.6932            -15.6961            0.00285013          300                 
+ ------------------------------------------------------------------------------------------------
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 6
+ -------------------------------------------
+ DONE(5.20235    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13527542e+02   0.00000000e+00   1.1523e-03   0.12
+ GE2     -2.13527550e+02  -7.95718103e-06   1.8242e-04   0.10
+ GE3     -2.13527550e+02  -6.13233838e-08   3.3326e-05   0.10
+ GE4     -2.13527550e+02  -2.90706867e-09   6.8957e-06   0.11
+ GE5     -2.13527550e+02  -8.81089559e-10   1.4955e-06   0.13
+ GE6     -2.13527550e+02  -5.35599784e-10   1.0013e-07   0.15
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 7
+ -------------------------------------------
+ DONE(6.02589    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13520971e+02   0.00000000e+00   5.4975e-04   0.12
+ GE2     -2.13520972e+02  -9.31861572e-07   1.1369e-04   0.10
+ GE3     -2.13520972e+02  -1.26513788e-08   1.9781e-05   0.16
+ GE4     -2.13520972e+02  -5.57307998e-09   4.7399e-06   0.11
+ GE5     -2.13520972e+02   4.60411348e-10   5.4597e-07   0.12
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 8
+ -------------------------------------------
+ DONE(6.74823    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13538677e+02   0.00000000e+00   7.8060e-04   0.21
+ GE2     -2.13538680e+02  -2.84750222e-06   1.4239e-04   0.11
+ GE3     -2.13538680e+02  -1.99754962e-08   1.5822e-05   0.10
+ GE4     -2.13538680e+02  -1.04069883e-10   2.0316e-06   0.11
+ GE5     -2.13538680e+02  -3.90999201e-10   6.2905e-07   0.11
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 9
+ -------------------------------------------
+ DONE(7.49652    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13565074e+02   0.00000000e+00   6.4183e-04   0.12
+ GE2     -2.13565075e+02  -1.22403359e-06   1.3260e-04   0.11
+ GE3     -2.13565075e+02  -8.47603999e-09   1.5854e-05   0.11
+ GE4     -2.13565075e+02  -2.55824363e-09   4.6078e-06   0.13
+ GE5     -2.13565075e+02  -7.92705081e-10   6.4702e-07   0.15
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 10
+ -------------------------------------------
+ DONE(8.22136    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13593151e+02   0.00000000e+00   5.1382e-04   0.12
+ GE2     -2.13593151e+02  -8.76460141e-07   1.0560e-04   0.11
+ GE3     -2.13593151e+02  -7.84700450e-09   1.1913e-05   0.15
+ GE4     -2.13593151e+02   1.24057294e-10   3.1810e-06   0.11
+ GE5     -2.13593151e+02  -7.30616013e-11   6.1092e-07   0.10
+ ------------------------------------------------------------------------------------------------
+ Energy (Ry)         Potential (Ry)      Kinetic (Ry)        Temperature (K)     
+ -15.696             -15.6988            0.00285013          300                 
+ ------------------------------------------------------------------------------------------------
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 11
+ -------------------------------------------
+ DONE(8.92926    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13619254e+02   0.00000000e+00   5.9375e-04   0.11
+ GE2     -2.13619255e+02  -1.41840652e-06   1.2136e-04   0.19
+ GE3     -2.13619255e+02  -9.98021957e-09   1.5230e-05   0.10
+ GE4     -2.13619255e+02  -1.57989973e-09   3.9474e-06   0.10
+ GE5     -2.13619255e+02   4.99830293e-10   9.1261e-07   0.11
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 12
+ -------------------------------------------
+ DONE(9.65513    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13639248e+02   0.00000000e+00   6.0149e-04   0.11
+ GE2     -2.13639249e+02  -1.44057971e-06   1.2042e-04   0.10
+ GE3     -2.13639249e+02  -9.06309467e-09   1.2970e-05   0.10
+ GE4     -2.13639249e+02   2.10677466e-10   2.0346e-06   0.11
+ GE5     -2.13639249e+02  -6.34425086e-10   5.9219e-07   0.11
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 13
+ -------------------------------------------
+ DONE(10.3839    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13650200e+02   0.00000000e+00   4.2659e-04   0.11
+ GE2     -2.13650200e+02  -5.30257514e-07   9.1840e-05   0.12
+ GE3     -2.13650200e+02  -3.25944649e-09   9.3728e-06   0.14
+ GE4     -2.13650200e+02  -7.92076699e-10   2.5805e-06   0.12
+ GE5     -2.13650200e+02  -1.24419823e-10   5.8176e-07   0.11
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 14
+ -------------------------------------------
+ DONE(11.098     SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13651507e+02   0.00000000e+00   3.4894e-04   0.16
+ GE2     -2.13651508e+02  -6.52838760e-07   7.0350e-05   0.21
+ GE3     -2.13651508e+02  -3.59357703e-09   8.7146e-06   0.10
+ GE4     -2.13651508e+02  -9.78730601e-10   2.1245e-06   0.11
+ GE5     -2.13651508e+02   4.43952549e-10   5.1232e-07   0.10
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 15
+ -------------------------------------------
+ DONE(11.8919    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13644340e+02   0.00000000e+00   2.6358e-04   0.12
+ GE2     -2.13644340e+02  -2.48385179e-07   5.3526e-05   0.10
+ GE3     -2.13644340e+02  -1.54009409e-09   4.3468e-06   0.10
+ GE4     -2.13644340e+02   2.22230044e-10   1.1088e-06   0.11
+ GE5     -2.13644340e+02  -2.15656192e-10   2.5130e-07   0.11
+ ------------------------------------------------------------------------------------------------
+ Energy (Ry)         Potential (Ry)      Kinetic (Ry)        Temperature (K)     
+ -15.6997            -15.7026            0.00285013          300                 
+ ------------------------------------------------------------------------------------------------
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 16
+ -------------------------------------------
+ DONE(12.6112    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13631073e+02   0.00000000e+00   2.7517e-04   0.12
+ GE2     -2.13631073e+02  -1.91282112e-07   5.6104e-05   0.11
+ GE3     -2.13631073e+02  -9.14224675e-10   3.0516e-06   0.10
+ GE4     -2.13631073e+02   8.24873454e-11   7.4962e-07   0.11
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 17
+ -------------------------------------------
+ DONE(13.1741    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13615429e+02   0.00000000e+00   3.5872e-04   0.19
+ GE2     -2.13615430e+02  -3.08594198e-07   7.5779e-05   0.11
+ GE3     -2.13615430e+02  -1.11714403e-09   4.5136e-06   0.13
+ GE4     -2.13615430e+02   5.20107727e-10   1.1818e-06   0.14
+ GE5     -2.13615430e+02   5.56843961e-11   3.4760e-07   0.11
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 18
+ -------------------------------------------
+ DONE(13.9524    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13602568e+02   0.00000000e+00   4.3464e-04   0.12
+ GE2     -2.13602568e+02  -3.99845987e-07   9.3273e-05   0.10
+ GE3     -2.13602568e+02  -1.83611079e-09   5.3389e-06   0.11
+ GE4     -2.13602568e+02  -1.14655718e-09   9.1213e-07   0.12
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 19
+ -------------------------------------------
+ DONE(14.5178    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13596579e+02   0.00000000e+00   4.7465e-04   0.13
+ GE2     -2.13596579e+02  -8.32193898e-07   9.1040e-05   0.20
+ GE3     -2.13596579e+02  -4.59930393e-09   8.5643e-06   0.15
+ GE4     -2.13596579e+02  -1.19247748e-09   1.0319e-06   0.11
+ GE5     -2.13596579e+02   1.02252406e-09   1.2036e-07   0.13
+ -------------------------------------------
+ STEP OF MOLECULAR DYNAMICS : 20
+ -------------------------------------------
+ DONE(15.3567    SEC) : INIT SCF
+ ITER       ETOT/eV          EDIFF/eV         DRHO     TIME/s
+ GE1     -2.13596893e+02   0.00000000e+00   4.1280e-04   0.13
+ GE2     -2.13596893e+02  -5.03196372e-07   8.4849e-05   0.12
+ GE3     -2.13596893e+02  -2.66688137e-09   7.0386e-06   0.11
+ GE4     -2.13596893e+02  -1.13181435e-10   1.4290e-06   0.22
+ GE5     -2.13596893e+02   1.38630944e-10   4.2280e-07   0.12
+ ------------------------------------------------------------------------------------------------
+ Energy (Ry)         Potential (Ry)      Kinetic (Ry)        Temperature (K)     
+ -15.6962            -15.6991            0.00285013          300                 
+ ------------------------------------------------------------------------------------------------
+TIME STATISTICS
+----------------------------------------------------------------------------
+    CLASS_NAME                NAME            TIME/s  CALLS   AVG/s  PER/%  
+----------------------------------------------------------------------------
+                   total                      16.16  51       0.32   100.00 
+ Driver            reading                    0.01   1        0.01   0.06   
+ Input_Conv        Convert                    0.00   1        0.00   0.00   
+ Driver            driver_line                16.15  1        16.15  99.94  
+ UnitCell          check_tau                  0.00   1        0.00   0.00   
+ ESolver_KS_LCAO   before_all_runners         0.10   1        0.10   0.62   
+ PW_Basis_Sup      setuptransform             0.00   1        0.00   0.03   
+ PW_Basis_Sup      distributeg                0.00   1        0.00   0.00   
+ mymath            heapsort                   0.00   3        0.00   0.00   
+ PW_Basis_K        setuptransform             0.00   1        0.00   0.01   
+ PW_Basis_K        distributeg                0.00   1        0.00   0.00   
+ PW_Basis          setup_struc_factor         0.00   21       0.00   0.01   
+ NOrbital_Lm       extra_uniform              0.01   5        0.00   0.08   
+ Mathzone_Add1     SplineD2                   0.00   5        0.00   0.00   
+ Mathzone_Add1     Cubic_Spline_Interpolation 0.00   5        0.00   0.00   
+ Mathzone_Add1     Uni_Deriv_Phi              0.01   5        0.00   0.07   
+ ppcell_vl         init_vloc                  0.00   1        0.00   0.00   
+ Run_MD            md_line                    16.05  1        16.05  99.30  
+ Verlet            setup                      1.05   1        1.05   6.51   
+ MD_func           force_virial               16.02  21       0.76   99.10  
+ ESolver_KS_LCAO   runner                     14.16  21       0.67   87.63  
+ ESolver_KS_LCAO   before_scf                 0.59   21       0.03   3.65   
+ atom_arrange      search                     0.01   21       0.00   0.04   
+ Grid_Technique    init                       0.20   21       0.01   1.27   
+ Grid_BigCell      grid_expansion_index       0.04   42       0.00   0.22   
+ Grid_Driver       Find_atom                  0.00   294      0.00   0.01   
+ Record_adj        for_2d                     0.05   21       0.00   0.34   
+ LCAO_domain       grid_prepare               0.00   21       0.00   0.00   
+ Veff              initialize_HR              0.00   21       0.00   0.01   
+ OverlapNew        initialize_SR              0.00   21       0.00   0.01   
+ EkineticNew       initialize_HR              0.00   21       0.00   0.01   
+ NonlocalNew       initialize_HR              0.03   21       0.00   0.16   
+ Charge            set_rho_core               0.00   21       0.00   0.00   
+ Charge            atomic_rho                 0.08   42       0.00   0.48   
+ PW_Basis_Sup      recip2real                 0.15   283      0.00   0.90   
+ PW_Basis_Sup      gathers_scatterp           0.10   283      0.00   0.59   
+ Potential         init_pot                   0.10   21       0.00   0.59   
+ Potential         update_from_charge         0.21   131      0.00   1.30   
+ Potential         cal_fixed_v                0.02   21       0.00   0.12   
+ PotLocal          cal_fixed_v                0.02   21       0.00   0.12   
+ Potential         cal_v_eff                  0.19   131      0.00   1.17   
+ H_Hartree_pw      v_hartree                  0.14   131      0.00   0.87   
+ PW_Basis_Sup      real2recip                 0.11   262      0.00   0.69   
+ PW_Basis_Sup      gatherp_scatters           0.07   262      0.00   0.45   
+ PotXC             cal_v_eff                  0.05   131      0.00   0.29   
+ XC_Functional     v_xc                       0.05   131      0.00   0.29   
+ Potential         interpolate_vrs            0.00   131      0.00   0.01   
+ H_Ewald_pw        compute_ewald              0.01   21       0.00   0.09   
+ Charge_Mixing     init_mixing                0.00   21       0.00   0.00   
+ HSolverLCAO       solve                      13.14  110      0.12   81.31  
+ HamiltLCAO        updateHk                   5.38   3960     0.00   33.28  
+ OperatorLCAO      init                       4.62   11880    0.00   28.58  
+ Veff              contributeHR               3.78   110      0.03   23.39  
+ Gint_interface    cal_gint                   7.03   241      0.03   43.51  
+ Gint_interface    cal_gint_vlocal            3.53   110      0.03   21.83  
+ Gint_Tools        cal_psir_ylm               0.45   21120    0.00   2.79   
+ Gint_k            transfer_pvpR              0.25   110      0.00   1.54   
+ OverlapNew        calculate_SR               0.07   21       0.00   0.43   
+ OverlapNew        contributeHk               0.69   3960     0.00   4.24   
+ EkineticNew       contributeHR               0.07   110      0.00   0.44   
+ EkineticNew       calculate_HR               0.07   21       0.00   0.44   
+ NonlocalNew       contributeHR               0.13   110      0.00   0.83   
+ NonlocalNew       calculate_HR               0.12   21       0.01   0.76   
+ OperatorLCAO      contributeHk               0.63   3960     0.00   3.87   
+ HSolverLCAO       hamiltSolvePsiK            4.28   3960     0.00   26.48  
+ DiagoElpa         elpa_solve                 2.68   3960     0.00   16.57  
+ elecstate         cal_dm                     0.60   131      0.00   3.74   
+ psiMulPsiMpi      pdgemm                     0.56   4716     0.00   3.48   
+ DensityMatrix     cal_DMR                    0.57   151      0.00   3.51   
+ ElecStateLCAO     psiToRho                   2.66   110      0.02   16.48  
+ Gint              transfer_DMR               0.09   110      0.00   0.55   
+ Gint_interface    cal_gint_rho               2.52   110      0.02   15.60  
+ Charge_Mixing     get_drho                   0.05   110      0.00   0.33   
+ Charge            mix_rho                    0.15   89       0.00   0.95   
+ Charge            Broyden_mixing             0.06   89       0.00   0.38   
+ ESolver_KS_LCAO   after_scf                  0.04   21       0.00   0.25   
+ ESolver_KS_LCAO   cal_force                  1.85   21       0.09   11.46  
+ Force_Stress_LCAO getForceStress             1.85   21       0.09   11.46  
+ Forces            cal_force_loc              0.01   21       0.00   0.05   
+ Forces            cal_force_ew               0.00   21       0.00   0.02   
+ Forces            cal_force_cc               0.00   21       0.00   0.00   
+ Forces            cal_force_scc              0.02   21       0.00   0.09   
+ Force_LCAO        ftable                     1.52   21       0.07   9.39   
+ Force_LCAO        allocate                   0.20   21       0.01   1.22   
+ LCAO_domain       build_ST_new               0.20   42       0.00   1.21   
+ Force_LCAO        cal_pulay_fs_center2       0.01   42       0.00   0.07   
+ Gint_interface    cal_gint_force             0.98   21       0.05   6.06   
+ Gint_Tools        cal_dpsir_ylm              0.14   2016     0.00   0.86   
+ NonlocalNew       cal_force_stress           0.31   21       0.01   1.89   
+ Verlet            first_half                 0.00   20       0.00   0.00   
+ Charge_Extra      extrapolate_charge         0.06   20       0.00   0.38   
+ Verlet            second_half                0.00   20       0.00   0.00   
+ ESolver_KS_LCAO   after_all_runners          0.00   1        0.00   0.01   
+ ModuleIO          write_istate_info          0.00   1        0.00   0.01   
+----------------------------------------------------------------------------
+
+
+ START  Time  : Wed May 28 14:00:51 2025
+ FINISH Time  : Wed May 28 14:01:07 2025
+ TOTAL  Time  : 16
+ SEE INFORMATION IN : OUT.ABACUS/
