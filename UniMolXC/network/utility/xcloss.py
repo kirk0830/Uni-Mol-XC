@@ -80,16 +80,6 @@ def tminnesota(coef: Tensor, e: Tensor, eref: Tensor) -> Tensor:
     loggingassert(ncoef == len(coef),
         'inconsistent number of coefficients and energy terms:'
         f' {ncoef} != {len(coef)}')
-    # check the require_grad flag
-    # loggingassert(coef.requires_grad,
-    #     'the coefficients must have requires_grad=True, '
-    #     'otherwise the gradient cannot be calculated')
-    # loggingassert(e.requires_grad,
-    #     'the energy terms must have requires_grad=True, '
-    #     'otherwise the gradient cannot be calculated')
-    # loggingassert(eref.requires_grad,
-    #     'the reference value must have requires_grad=True, '
-    #     'otherwise the gradient cannot be calculated')
     # calculate the loss value
     return th.mean(
         (eref - th.matmul(e, coef.view(-1, 1)).view(-1))**2
