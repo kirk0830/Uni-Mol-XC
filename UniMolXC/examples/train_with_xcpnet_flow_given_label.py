@@ -9,7 +9,8 @@ import shutil
 
 import numpy as np
 
-from UniMolXC.network.kernel._xcnet import XCPNetImpl, build_dataset_from_abacus
+from UniMolXC.network.kernel._xcnet import XCParameterizationNet, \
+    build_dataset_from_abacus
 
 class TestTrainWithXCPNetFlowGivenLabel(unittest.TestCase):
     def setUp(self):
@@ -21,26 +22,28 @@ class TestTrainWithXCPNetFlowGivenLabel(unittest.TestCase):
         
         # Step 1: prepare the dataset
         dataset = build_dataset_from_abacus(
-            xdata=[os.path.join(self.testfiles, 'scf-unfinished')],
-            ydata=[np.random.rand(20)]
+            folders=[os.path.join(self.testfiles, 'scf-finished')],
+            labels=[[-1.0,]] # one job, one frame, one energy label
         )
-        
-        x, y = dataset
-        _, _, ndim = x[0].shape
-        
+                
         # Step 2: instantiate the XCPNet model
-        model = XCPNetImpl(
-            elem=['Zn', 'Y', 'S'],
-            ndim=ndim,
-            nhidden=[64, 64, 64],
-            nparam=20
+        trainer = XCParameterizationNet(
+            elem=['Si'],
+            model_size={'ndim': 448,
+                        'nparam': 1,
+                        'nhidden': [20, 20, 20]}
         )
         
         # Step 3: train the model
-        model.train()
-        
-        
-
+        with self.assertRaises(NotImplementedError):
+            # what is not implemented yet is the read_exc_terms() function
+            # in the AbacusJob class
+            trainer.train(
+                data=dataset,
+                epochs=2,
+                batch_size=5,
+                prefix='test_xcpnet_flow_given_label'
+            )
 
 if __name__ == '__main__':
     unittest.main()

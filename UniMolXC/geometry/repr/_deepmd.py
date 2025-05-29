@@ -19,7 +19,7 @@ except ImportError:
 # local modules
 from UniMolXC.abacus.control import AbacusJob
 
-def generate_from_abacus(jobdir,
+def generate_from_abacus(job,
                          dpmodel,
                          head=None):
     '''
@@ -28,8 +28,9 @@ def generate_from_abacus(jobdir,
     
     Parameters
     ----------
-    jobdir : str
-        The path to the ABACUS job directory.
+    job : str or AbacusJob
+        The path to the ABACUS job directory or instance of
+        `UniMolXC.abacus.control.AbacusJob`.
     dpmodel : str
         The path to the DeePMD model file, or the instance of
         `deepmd.infer.deep_pot.DeepPot`.
@@ -43,7 +44,7 @@ def generate_from_abacus(jobdir,
         shape of nframes x n_atoms x ?.
     '''
     # simple sanity check
-    assert isinstance(jobdir, str)
+    assert isinstance(job, (str, AbacusJob))
     if isinstance(dpmodel, str):
         assert os.path.exists(dpmodel), f'{dpmodel} does not exist'
         dpmodel = DeepPot(dpmodel)
@@ -51,7 +52,7 @@ def generate_from_abacus(jobdir,
         assert isinstance(dpmodel, DeepPot)
 
     # convert the structure to the DPData format
-    data = AbacusJob(jobdir).to_deepmd()
+    data = AbacusJob(job).to_deepmd() if isinstance(job, str) else job.to_deepmd()
     
     type_map_model = dpmodel.get_type_map()
     atomtype = np.array([type_map_model.index(data['atom_names'][it_at])
@@ -85,11 +86,21 @@ class TestAbacusToDeePMDRepr(unittest.TestCase):
         fmodel = os.path.join(self.testfiles, 'dpa3-2p4-7m-mptraj.pth')
         jobdir = os.path.join(self.testfiles, 'scf-finished')
         # from an finished ABACUS job
-        result = generate_from_abacus(jobdir, fmodel)
-        nframe, nat, ndim = result.shape
+        result1 = generate_from_abacus(jobdir, fmodel)
+        nframe, nat, ndim = result1.shape
         self.assertEqual(nframe, 1)
         self.assertEqual(nat, 2)
-        self.assertEqual(ndim, 448) # what does the 448 mean?
+        self.assertEqual(ndim, 448)
+        
+        # from an AbacusJob instance
+        job = AbacusJob(jobdir)
+        result2 = generate_from_abacus(job, fmodel)
+        self.assertTrue(np.array_equal(result1, result2))
+        
+        # from a DeepPot instance
+        dpmodel = DeepPot(fmodel)
+        result3 = generate_from_abacus(job, dpmodel)
+        self.assertTrue(np.array_equal(result1, result3))
 
 if __name__ == '__main__':
     unittest.main()

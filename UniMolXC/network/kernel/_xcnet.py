@@ -13,7 +13,6 @@ import json
 from typing import Callable
 
 # third-party modules
-import numpy as np
 from torch import nn
 import torch
 import torch.optim as optim
@@ -29,12 +28,11 @@ except ImportError:
 from UniMolXC.network.utility.xcloss import tminnesota
 from UniMolXC.geometry.repr._deepmd import \
     generate_from_abacus as descgen
+from UniMolXC.abacus.control import AbacusJob
 from UniMolXC.utility.easyassert import \
     loggingassert as lgassert
 
-def build_dataset_from_abacus(folders,
-                              labels,
-                              f_descmodel=None):
+def build_dataset_from_abacus(folders, labels, f_descmodel=None):
     '''
     build the dataset for training from the ABACUS
     folders and labels.
@@ -45,9 +43,9 @@ def build_dataset_from_abacus(folders,
         the list of ABACUS folders, each folder should contain
         the output files of the ABACUS calculation.
     labels : list of list of float
-        the list of labels for each folder, each label should
-        be a list of floats, which will be used as the target
-        values for the training.
+        the reference energies for each jobs. It should be indexed
+        by [ijob][iframe], where ijob is the index of the job
+        and iframe is the index of the frame in the job.
     f_descmodel : str
         the path to the DeePMD model file, if None,
         the function will use the default DeePMD model in 
@@ -55,15 +53,36 @@ def build_dataset_from_abacus(folders,
         
     Returns
     -------
-    descriptors : list of torch.Tensor
-        the list of descriptors for each folder, each descriptor
-        is a torch.Tensor of shape (nat, ndim), where nat is the
-        number of atoms in the structure, and ndim is the
-        number of dimensions of the descriptor.
-    labels : list of torch.Tensor
-        the list of labels for each folder, each label is a
-        torch.Tensor of shape (ncoef,), where ncoef is the
-        number of coefficients in the label.
+    dict
+        a dictionary containing the following keys:
+        
+        - 'atoms': list of list of str
+        
+            the element symbols for each structure, should be a list
+            of lists, where each list contains the element symbols
+            of the atoms in the structure, e.g. [['H', 'O'], ['C', 'H']]
+            
+        - 'desc': list of torch.Tensor
+        
+            the counterpart of the `coordinates` in the Uni-mol API.
+            should be a list of tensors with shape (batch_size, nat, ndim), 
+            where `batch_size` can be the length of molecular dynamics 
+            simulation trajectory, `nat` is the number of atoms in the 
+            structure and `ndim` is the number of dimensions of the 
+            descriptor. For different element, the dimensions can be 
+            different
+            
+        - 'e': list of torch.Tensor
+        
+            should be a list of tensors with shape (batch_size, ncoef).
+            For each "row" in the tensor, it contains the energy terms
+            calculated on the structure.
+            
+        - 'eref': list of torch.Tensor
+        
+            should be a list of tensors with shape (batch_size,).
+            For each "row" in the tensor, it contains the reference
+            energy for the structure.
     '''
     # sanity check
     # folders
@@ -72,8 +91,8 @@ def build_dataset_from_abacus(folders,
     # labels
     assert isinstance(labels, list)
     assert len(labels) == len(folders)
-    ncoef = len(labels[0])
-    assert all(len(l) == ncoef for l in labels)
+    eref = [torch.Tensor(l) for l in labels]
+    assert all(l.ndim == 1 for l in eref)
     
     if f_descmodel is None:
         testfiles = os.path.dirname(__file__)
@@ -85,12 +104,20 @@ def build_dataset_from_abacus(folders,
         f'{f_descmodel} does not exist, please provide a valid DeePMD model file'
     
     # instantiate the DeePMD model here to reduce the time
-    # cost on iteratively loading the model
+    # cost on iteratively loading the same model
     dpmodel = DeepPot(f_descmodel)
     
-    # generate the descriptors for each folder
-    return [torch.tensor(descgen(f, dpmodel), dtype=torch.float32)
-            for f in folders], labels
+    myjobs = [AbacusJob(f) for f in folders]
+    # read structure
+    for j in myjobs:
+        _ = j.read_stru()
+    
+    # return
+    temp = [(j.get_atomic_symbols(), 
+             torch.Tensor(descgen(j, dpmodel)),
+             torch.Tensor(j.read_exc_terms()))
+            for j in myjobs]
+    return dict(zip(['atoms', 'desc', 'e'], list(zip(*temp))))|{'eref': eref}
 
 class TestBuildXCPNetDataset(unittest.TestCase):
     def setUp(self):
@@ -99,17 +126,12 @@ class TestBuildXCPNetDataset(unittest.TestCase):
         testfiles = os.path.dirname(testfiles)
         self.testfiles = os.path.abspath(os.path.join(testfiles, 'testfiles'))
     
-    def test_abacus_simplest(self):
-        folders = [os.path.join(self.testfiles, 'scf-finished')]
-        ydata = [[1.0, 2.0, 3.0]]  # mock labels
-        desc, labels = build_dataset_from_abacus(folders, ydata)
-        self.assertEqual(len(desc), 1) # one folder
-        self.assertEqual(len(labels), 1) # one label
-        # becauase the default model for generating the descriptor is used,
-        # we know the length of descriptor for atom is 448
-        self.assertEqual(desc[0].shape, (1, 2, 448)) 
-        # 1 frame, 2 atoms, 448 dimensions
-        self.assertListEqual(labels[0], [1.0, 2.0, 3.0])
+    def test_build(self):
+        folders = [os.path.join(self.testfiles, 'scf-finished')] # one job
+        ydata = [[1.0]]  # mock labels, one job, one frame
+        with self.assertRaises(NotImplementedError):
+            # because the read_exc_terms() is not implemented yet
+            build_dataset_from_abacus(folders, ydata)
 
 class LinearResidualNet(nn.Module):
     '''
@@ -925,6 +947,39 @@ class XCParameterizationNet:
             valid_loss /= len(validset['desc'])
             print(f'{iepoch:>10} {train_loss:>15.4f} {valid_loss:>15.4f}', flush=True)
 
+    def eval(self, data: dict) -> list:
+        '''
+        evaluate the model on the given data.
+        
+        Parameters
+        ----------
+        data : dict
+            the evaluation data, should contain the same keys as the
+            training data, see function train() for the details.
+            
+        Returns
+        -------
+        list of np.ndarray
+            a list of numpy arrays, each array contains the XC parameters
+            for each structure in the input data. The shape of each
+            array is (batch_size, nparam), where `batch_size` is the
+            number of frames in the structure and `nparam` is the number
+            of XC parameters.
+        '''
+        if self.model is None:
+            raise ValueError('Model is not trained yet. Please call train() first.')
+        
+        self.model.eval()
+        
+        out = []
+        with torch.no_grad():
+            for atoms, desc, _, _ in zip(*data.values()):
+                type_map = self.model.encode_type_map(atoms)
+                x = desc
+                y = self.model.forward(x, type_map)
+                out.append(y.cpu().numpy())
+        return out
+
 class TestXCParameterizationNet(unittest.TestCase):
     def setUp(self):
         self.testfiles = os.path.abspath(os.path.join(
@@ -942,10 +997,10 @@ class TestXCParameterizationNet(unittest.TestCase):
     def test_split_train_validation(self):
         # mock data
         data = {
-            'atoms': [['H', 'H', 'O'], ['C', 'H', 'H', 'H', 'H']],
-            'desc': [torch.randn(5, 3, 10), torch.randn(5, 5, 10)],
-            'e': [torch.randn(5, 1), torch.randn(5, 1)],
-            'eref': [torch.randn(5), torch.randn(5)]
+            'atoms': [['H', 'H', 'O'],       ['C', 'H', 'H', 'H', 'H']],
+            'desc':  [torch.randn(5, 3, 10), torch.randn(5, 5, 10)],
+            'e':     [torch.randn(5, 1),     torch.randn(5, 1)],
+            'eref':  [torch.randn(5),        torch.randn(5)]
         }
         
         trainset, validset = XCParameterizationNet.split_train_validation(data, ratio=0.8)
@@ -983,10 +1038,10 @@ class TestXCParameterizationNet(unittest.TestCase):
     def test_train(self):
         # mock data: water and methane
         data = {
-            'atoms': [['H', 'H', 'O'], ['C', 'H', 'H', 'H', 'H']],
-            'desc': [torch.randn(5, 3, 10), torch.randn(5, 5, 10)],
-            'e': [torch.randn(5, 1), torch.randn(5, 1)],
-            'eref': [torch.randn(5), torch.randn(5)]
+            'atoms': [['H', 'H', 'O'],       ['C', 'H', 'H', 'H', 'H']],
+            'desc':  [torch.randn(5, 3, 10), torch.randn(5, 5, 10)],
+            'e':     [torch.randn(5, 1),     torch.randn(5, 1)],
+            'eref':  [torch.randn(5),        torch.randn(5)]
         }
         
         # train
@@ -1008,8 +1063,7 @@ class TestXCParameterizationNet(unittest.TestCase):
         self.assertEqual(len(trainer.model.xcatomtyp_nets), 3)
         self.assertTrue(all(isinstance(net, LinearResidualNet) 
                             for net in trainer.model.xcatomtyp_nets))
-        
+
 if __name__ == '__main__':
     # run unit tests
     unittest.main(exit=True)
-    

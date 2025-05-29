@@ -47,9 +47,8 @@ def build_dataset_from_abacus(folders, labels, cluster_truncation=None):
             contains the Cartesian coordinates of atoms, the number
             of lines should be identical with the corresponding
             element in 'atoms'
-    labels : array-like
-        the labels of the dataset. The labels should be in the 
-        same order as xdata.
+        - 'target', a tuple of list of float, each list of float
+            corresponds to the label of the structure
     '''
     # sanity check
     # folders
@@ -90,8 +89,9 @@ def build_dataset_from_abacus(folders, labels, cluster_truncation=None):
     if cluster_truncation is None:
         if isinstance(labels, dict):
             labels = list(labels.values())
-        temp = [(j.get_atomic_symbols(), j.get_atomic_positions()) for j in myjobs]
-        return dict(zip(['atoms', 'coordinates'], list(zip(*temp)))), labels
+        temp = [(j.get_atomic_symbols(), j.get_atomic_positions(), l) 
+                for j, l in zip(myjobs, labels)]
+        return dict(zip(['atoms', 'coordinates', 'target'], list(zip(*temp))))
 
     # the case that requires the clustergen
     # assert cluster_truncation: list[dict] or dict
@@ -118,16 +118,23 @@ def build_dataset_from_abacus(folders, labels, cluster_truncation=None):
     assert sum(len(c) for c in clusters) > 0
 
     # reorganize the labels
-    if isinstance(labels[0], list): # either duplicate for each cluster
-        labels = [y for y, j in zip(labels, clusters) for _ in range(len(j))]
-    elif isinstance(labels[0], dict): # or element-wise prepare for each cluster
-        labels = [y[c['center_typ']] for y, j in zip(labels, clusters) for c in j]
+    if isinstance(labels[0], list):
+        # either duplicate for each cluster (because not element-wise)
+        labels = [[y for _ in j] 
+                  for y, j in zip(labels, clusters)]
+        # length: sum over jobs, for each job, sum over clusters
+    elif isinstance(labels[0], dict): 
+        # or prepare for each cluster (element-wise, each cluster own one label)
+        labels = [[y[c['center_typ']] for c in j] 
+                  for y, j in zip(labels, clusters)]
+        # length: sum over jobs, for each job, sum over clusters
     else: # be careful
         raise TypeError('labels should have been list[list[int|float]] or '
                         'list[dict[str, int|float|list[int|float]]]')
 
-    temp = [(c['elem'], c['pos']) for j in clusters for c in j]
-    return dict(zip(['atoms', 'coordinates'], list(zip(*temp)))), labels
+    temp = [(c['elem'], c['pos'], yc) for y, j in zip(labels, clusters) 
+            for yc, c in zip(y, j)]
+    return dict(zip(['atoms', 'coordinates', 'target'], list(zip(*temp))))
 
 class TestBuildUnimolDataset(unittest.TestCase):
     def setUp(self):
@@ -141,20 +148,21 @@ class TestBuildUnimolDataset(unittest.TestCase):
         ydata = [0.0] # assume it is the Hubbard U exact value of Silicon
         
         # the case that do not require the clustergen
-        xdata, ydata = build_dataset_from_abacus(
+        data = build_dataset_from_abacus(
             folders=folders,
             labels=ydata
         )
         # there would be a direct output of the atomic coordinates
-        self.assertTrue(isinstance(xdata, dict))
-        self.assertTrue('atoms' in xdata)
-        self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], tuple))
+        self.assertTrue(isinstance(data, dict))
+        self.assertTrue('atoms' in data)
+        self.assertTrue('coordinates' in data)
+        self.assertTrue('target' in data)
+        self.assertTrue(isinstance(data['atoms'], tuple))
         self.assertTrue(all(isinstance(job, list) and \
                         all(isinstance(elem, str) for elem in job)
-                            for job in xdata['atoms'] ))
+                            for job in data['atoms'] ))
         # the label will not be duplicated because there is only one structure
-        self.assertListEqual(ydata, [[0.0]])
+        self.assertTupleEqual(data['target'], ([0.0],))
 
     def test_abacus_clustergen(self):
         folders = [os.path.join(self.testfiles, 'scf-finished')]
@@ -163,70 +171,73 @@ class TestBuildUnimolDataset(unittest.TestCase):
         # the case that requires the clustergen
         # the truncation radius is 5 Angstrom, and there are two Si atoms
         # in the system, so the output should be two clusters
-        xdata, ydata = build_dataset_from_abacus(
+        data = build_dataset_from_abacus(
             folders=folders,
             labels=ydata,
             cluster_truncation=[{'Si': 5.0}] # the truncation radius as 5 Angstrom
         )
-        self.assertTrue(isinstance(xdata, dict))
-        self.assertTrue('atoms' in xdata)
-        self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], tuple))
-        self.assertTrue(len(xdata['atoms']) == 2) # two clusters
-        self.assertTrue(len(xdata['coordinates']) == 2) # two clusters
+        self.assertTrue(isinstance(data, dict))
+        self.assertTrue('atoms' in data)
+        self.assertTrue('coordinates' in data)
+        self.assertTrue('target' in data)
+        self.assertTrue(isinstance(data['atoms'], tuple))
+        self.assertTrue(len(data['atoms']) == 2) # two clusters
+        self.assertTrue(len(data['coordinates']) == 2) # two clusters
         # check the correspondence of length between the atoms and coordinates
         self.assertTrue(all(len(x) == len(y) 
-                            for x, y in zip(xdata['atoms'], xdata['coordinates'])))
+                            for x, y in zip(data['atoms'], data['coordinates'])))
 
     def test_abacus_multiple_element(self):
         folders = [os.path.join(self.testfiles, 'scf-finished'),
                    os.path.join(self.testfiles, 'scf-unfinished')]
         ydata = [[0.0], [1.0, 5.0, 0.0]]
         
-        xdata, ydata = build_dataset_from_abacus(
+        data = build_dataset_from_abacus(
             folders=folders,
             labels=ydata
         )
-        self.assertTrue(isinstance(xdata, dict))
-        self.assertTrue('atoms' in xdata)
-        self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], tuple))
-        self.assertTrue(len(xdata['atoms']) == 2) # two structures, no cluster generated
-        self.assertTrue(len(xdata['coordinates']) == 2)
+        self.assertTrue(isinstance(data, dict))
+        self.assertTrue('atoms' in data)
+        self.assertTrue('coordinates' in data)
+        self.assertTrue('target' in data)
+        self.assertTrue(isinstance(data['atoms'], tuple))
+        self.assertTrue(len(data['atoms']) == 2) # two structures, no cluster generated
+        self.assertTrue(len(data['coordinates']) == 2)
         # check the correspondence of length between the atoms and coordinates
         self.assertTrue(all(len(x) == len(y) 
-                            for x, y in zip(xdata['atoms'], xdata['coordinates'])))
+                            for x, y in zip(data['atoms'], data['coordinates'])))
         # check the correspondence of length between the labels and structures
-        self.assertTrue(len(ydata) == 2)
-        self.assertListEqual(ydata, [[0.0], [1.0, 5.0, 0.0]])
+        self.assertTrue(len(data['target']) == 2)
+        self.assertTupleEqual(data['target'], ([0.0], [1.0, 5.0, 0.0]))
     
     def test_abacus_multiple_element_all_rc(self):
         folders = [os.path.join(self.testfiles, 'scf-finished'),
                    os.path.join(self.testfiles, 'scf-unfinished')]
         ydata = [[0.0], [1.0, 5.0, 0.0]]
         
-        xdata, ydata = build_dataset_from_abacus(
+        data = build_dataset_from_abacus(
             folders=folders,
             labels=ydata,
             cluster_truncation={'Si': 3.0, 'Y': 5.0, 'Zn': 5.0, 'S': 3.0}
         )
-        self.assertTrue(isinstance(xdata, dict))
-        self.assertTrue('atoms' in xdata)
-        self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], tuple))
+        self.assertTrue(isinstance(data, dict))
+        self.assertTrue('atoms' in data)
+        self.assertTrue('coordinates' in data)
+        self.assertTrue('target' in data)
+        self.assertTrue(isinstance(data['atoms'], tuple))
         # because this time we set the truncation radius for all the elements
         # so the output should be many clusters. The number of atoms of the
         # first structure is 2, and the second is 14, therefore we should have
         # 2 + 14 = 16 clusters
-        self.assertTrue(len(xdata['atoms']) == 16)
-        self.assertTrue(len(xdata['coordinates']) == 16)
+        self.assertTrue(len(data['atoms']) == 16)
+        self.assertTrue(len(data['coordinates']) == 16)
         # check the correspondence of length between the atoms and coordinates
         self.assertTrue(all(len(x) == len(y) 
-                            for x, y in zip(xdata['atoms'], xdata['coordinates'])))
+                            for x, y in zip(data['atoms'], data['coordinates'])))
         # check the correspondence of length between the labels and structures
-        self.assertTrue(len(ydata) == 16)
+        self.assertTrue(len(data['target']) == 16)
         # will have two for the first structure and 14 for the second
-        self.assertListEqual(ydata, [[0.0]]*2 + [[1.0, 5.0, 0.0]]*14)
+        self.assertTupleEqual(data['target'], tuple([[0.0]]*2 + [[1.0, 5.0, 0.0]]*14))
 
     def test_abacus_multiple_element_part_rc(self):
         folders = [os.path.join(self.testfiles, 'scf-finished'),
@@ -235,26 +246,27 @@ class TestBuildUnimolDataset(unittest.TestCase):
         
         # we do not include the Si and S because DFT+U is not
         # intended for them
-        xdata, ydata = build_dataset_from_abacus(
+        data = build_dataset_from_abacus(
             folders=folders,
             labels=ydata,
             cluster_truncation={'Zn': 5.0, 'Y': 3.0}
         )
-        self.assertTrue(isinstance(xdata, dict))
-        self.assertTrue('atoms' in xdata)
-        self.assertTrue('coordinates' in xdata)
-        self.assertTrue(isinstance(xdata['atoms'], tuple))
+        self.assertTrue(isinstance(data, dict))
+        self.assertTrue('atoms' in data)
+        self.assertTrue('coordinates' in data)
+        self.assertTrue('target' in data)
+        self.assertTrue(isinstance(data['atoms'], tuple))
         # we only define the truncation radius for Zn and Y, therefore only
         # the clusters of these two elements will be generated
         # there are 2 Zn and 4 Y, therefore we should have 6 clusters
-        self.assertTrue(len(xdata['atoms']) == 6)
-        self.assertTrue(len(xdata['coordinates']) == 6)
+        self.assertTrue(len(data['atoms']) == 6)
+        self.assertTrue(len(data['coordinates']) == 6)
         # check the correspondence of length between the atoms and coordinates
         self.assertTrue(all(len(x) == len(y) 
-                            for x, y in zip(xdata['atoms'], xdata['coordinates'])))
+                            for x, y in zip(data['atoms'], data['coordinates'])))
         # check the correspondence of length between the labels and structures
-        self.assertTrue(len(ydata) == 6)
-        self.assertListEqual(ydata, [[1.0, 5.0, 0.0]]*6)
+        self.assertTrue(len(data['target']) == 6)
+        self.assertTupleEqual(data['target'], tuple([[1.0, 5.0, 0.0]] * 6))
 
 class UniMolRegressionNet:
     '''
@@ -389,3 +401,7 @@ class UniMolRegressionNet:
             raise ValueError('The model is not trained yet. '
                              'Please call the `train` function first.')
         return self.model.predict(data=data)
+
+if __name__ == '__main__':
+    # run the tests
+    unittest.main()

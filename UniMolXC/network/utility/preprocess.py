@@ -146,7 +146,6 @@ def uniform_random_selector(nsample, ntotal, nfold, seed=None):
 
 class NetworkDataManagerTest(unittest.TestCase):
 
-
     def test_uniform_random_selector(self):
         nsample = 3
         ntotal = 10
