@@ -89,9 +89,7 @@ def build_dataset_from_abacus(folders,
     dpmodel = DeepPot(f_descmodel)
     
     # generate the descriptors for each folder
-    return [torch.tensor(descgen(f, dpmodel), 
-                         dtype=torch.float32,
-                         requires_grad=True)
+    return [torch.tensor(descgen(f, dpmodel), dtype=torch.float32)
             for f in folders], labels
 
 class TestBuildXCPNetDataset(unittest.TestCase):
@@ -242,8 +240,8 @@ class TestLinearResidualNet(unittest.TestCase):
               'Testing training process of LinearResidualNet...', 
               flush=True)
         model = LinearResidualNet(10, [20, 30], nfeatures=2)
-        x = torch.randn(5, 10, requires_grad=True)
-        y = torch.randn(5, 2, requires_grad=True)  # target output
+        x = torch.randn(5, 10)
+        y = torch.randn(5, 2)  # target output
         optimizer = optim.Adam(model.parameters(), lr=0.01)
         criterion = nn.MSELoss()
         model.train()  # set the model to training mode
@@ -596,7 +594,7 @@ class TestXCPNetImpl(unittest.TestCase):
         model = XCPNetImpl(['H', 'O'], ndim=10, nparam=2)
         
         # mock descriptor for 5 batch size, 3 atoms, 10 dimensions
-        x = torch.randn(5, 3, 10, requires_grad=True)
+        x = torch.randn(5, 3, 10)
         
         # mock type map for 3 atoms (2 H and 1 O)
         type_map = [0, 0, 1]
@@ -614,11 +612,11 @@ class TestXCPNetImpl(unittest.TestCase):
         model = XCPNetImpl(['H', 'O'], ndim=10, nparam=2)
         
         # mock the output of forward() method
-        y = torch.randn(5, 2, requires_grad=True)  # 5 structures, 2 parameters
+        y = torch.randn(5, 2)  # 5 structures, 2 parameters
         
         # mock energy terms and reference energy
-        e = torch.randn(5, 2, requires_grad=True)  # 5 structures, 2 parameters
-        eref = torch.randn(5, requires_grad=True)  # 5 reference energies
+        e = torch.randn(5, 2)  # 5 structures, 2 parameters
+        eref = torch.randn(5)  # 5 reference energies
         
         # calculate loss
         loss = model.loss(y, e, eref)
@@ -650,6 +648,10 @@ class TestXCPNetImpl(unittest.TestCase):
         # check if the gradients are computed
         self.assertIsNotNone(x.grad)
         self.assertEqual(x.grad.shape, (5, 3, 10))
+        self.assertIsNotNone(e.grad)
+        self.assertEqual(e.grad.shape, (5, 2))
+        self.assertIsNotNone(eref.grad)
+        self.assertEqual(eref.grad.shape, (5,))
 
     def test_train(self):
         ''' test the training process of the XCPNetImpl
@@ -660,14 +662,14 @@ class TestXCPNetImpl(unittest.TestCase):
         model = XCPNetImpl(['H', 'O'], ndim=10, nparam=2)
         
         # mock descriptor for 5 batch size, 3 atoms, 10 dimensions
-        x = torch.randn(5, 3, 10, requires_grad=True)
+        x = torch.randn(5, 3, 10)
         
         # mock type map for 3 atoms (2 H and 1 O)
         type_map = [0, 0, 1]
         
         # mock energy terms and reference energy
-        e = torch.randn(5, 2, requires_grad=True)
-        eref = torch.randn(5, requires_grad=True)
+        e = torch.randn(5, 2)
+        eref = torch.randn(5)
         
         # configure the optimizer
         optimizer = optim.Adam(model.parameters(), lr=0.01)
@@ -889,11 +891,15 @@ class XCParameterizationNet:
                 if nbatch > batch_size:
                     for i in range(0, nbatch, batch_size):
                         lo, hi = i, min(i + batch_size, nbatch)
-                        x = desc[lo:hi]
-                        y = self.model.forward(x, type_map)
-                        loss = self.model.loss(y, e[lo:hi], eref[lo:hi])
+                        # because we only need part of the data, we detach
+                        # the tensors to avoid unexpected gradient flow and free
+                        y = self.model.forward(x=desc[lo:hi].detach(), 
+                                               type_map=type_map)
+                        loss = self.model.loss(y=y, 
+                                               e=e[lo:hi].detach(), 
+                                               eref=eref[lo:hi].detach())
                         optimizer.zero_grad()
-                        loss.backward(retain_graph=True)
+                        loss.backward()
                         optimizer.step()
                         train_loss += loss.item() * (hi - lo)
                 else:
@@ -978,12 +984,9 @@ class TestXCParameterizationNet(unittest.TestCase):
         # mock data: water and methane
         data = {
             'atoms': [['H', 'H', 'O'], ['C', 'H', 'H', 'H', 'H']],
-            'desc': [torch.randn(5, 3, 10, requires_grad=True), 
-                     torch.randn(5, 5, 10, requires_grad=True)],
-            'e': [torch.randn(5, 1, requires_grad=True), 
-                  torch.randn(5, 1, requires_grad=True)],
-            'eref': [torch.randn(5, requires_grad=True), 
-                     torch.randn(5, requires_grad=True)]
+            'desc': [torch.randn(5, 3, 10), torch.randn(5, 5, 10)],
+            'e': [torch.randn(5, 1), torch.randn(5, 1)],
+            'eref': [torch.randn(5), torch.randn(5)]
         }
         
         # train
@@ -991,7 +994,10 @@ class TestXCParameterizationNet(unittest.TestCase):
                                         model_size={'ndim': 10, 
                                                     'nparam': 1, 
                                                     'nhidden': [20, 20, 20]})
-        trainer.train(data, epochs=20, batch_size=2, f_loss=tminnesota)
+        trainer.train(data, 
+                      epochs=20, 
+                      batch_size=2, 
+                      f_loss=tminnesota)
         # check if the model is instantiated
         self.assertIsNotNone(trainer.model)
         self.assertTrue(isinstance(trainer.model, XCPNetImpl))
