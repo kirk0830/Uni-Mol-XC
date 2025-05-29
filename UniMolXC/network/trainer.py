@@ -7,7 +7,7 @@ enabled by machine-learning
 Concept
 -------
 The training of machine-learning parameterization on Density Functional
-eXchange-Correlation here only considers re-parameterize the XC
+eXchange-Correlation (XC) here only considers re-parameterize the XC
 functionals with known analytical form. What will be solved by the
 machine-learning technique is how to find the best parameters for the
 energy components in the XC functionals chosen. This work is expected
@@ -37,7 +37,7 @@ annotation of the file `UniMolXC/network/kernel/classical.py`.
 We should note that, it is obvious that the energy components are 
 actually the functionals of the parameters, which means during the 
 training process, in principle one should always keep the parameters 
-and the energy components consistent. 
+and the energy components consistent with each other. 
 
 However, this manner is quite computationally costly, so an alternative
 strategy is to train the parameters with fixed energy components. 
@@ -47,8 +47,9 @@ will be changed, as a result. This process will be repeated until the
 loss converges to a certain threshold.
 
 In following codes, we will call the training of parameters with fixed
-energy components as inner training, counterpartly, the outer loop
-will be called the outer training.
+energy components as `inner training`, counterpartly, the outer loop
+during which the XC energy terms are updated will be called the 
+`outer training`.
 
 Backend
 -------
@@ -70,8 +71,6 @@ introduced above.
 '''
 
 # built-in modules
-import os
-import unittest
 import time
 
 # third-party modules
@@ -79,38 +78,49 @@ import numpy as np
 
 # local modules
 from UniMolXC.network.kernel._xcnet import XCParameterizationNet
+from UniMolXC.network.kernel._xcnet import \
+    build_dataset_from_abacus as abacus_to_xcpnet_dataset
 from UniMolXC.network.kernel._unimol import UniMolRegressionNet
-from UniMolXC.network.utility.preprocess import build_dataset
+from UniMolXC.network.kernel._unimol import \
+    build_dataset_from_abacus as abacus_to_unimol_dataset
 from UniMolXC.network.utility.xcfit import fit as classical_xc_fit
+from UniMolXC.network.utility.xcfit import build_ener_calculator
+from UniMolXC.network.utility.xcfit import calc_ener as calc_exc_terms
 from UniMolXC.network.utility.xcloss import minnesota, dminnesota, tminnesota
 
 class XCParameterizationNetTrainer:
 
     def __init__(self, 
-                 model):
+                 model: dict):
         '''
         instantiate a trainer for XCParameterizationNet.
         
         Parameters
         ----------
-        model : XCParameterizationNet or dict
-            the XCParameterizationNet model to be trained, or the dict
-            that contains the parameters of the model (the way to employ
-            other models)
+        model : dict
+            the basic configuration of the backend model
         '''
-        self.model_backend = None
-        if isinstance(model, dict):
+        self.model_backend = model.get('model_backend', 'xcpnet')
+        assert self.model_backend in ['xcpnet', 'unimol']
+        assert isinstance(model, dict)
+        
+        # instantiate the model backend
+        if self.model_backend == 'unimol':
             # the case that utilize the third-party model
             self.model = UniMolRegressionNet(
                 model_name=model.get('model_name', 'unimolv1'),
                 model_size=model.get('model_size', '84m'),
                 model_restart=model.get('model_restart')
             )
-            self.model_backend = 'unimol'
         else:
-            assert isinstance(model, XCParameterizationNet)
-            self.model = model
-            self.model_backend = 'xcpnet'
+            self.model = XCParameterizationNet(
+                elem=model.get('elem', None),
+                model_size=model.get('model_size', 
+                                     {'ndim': 448, 
+                                      'nparam': 1, 
+                                      'nhidden': [240, 240, 240]}),
+                model_restart=model.get('model_restart')
+            )
 
         self.coef_traj = None
         self.loss_traj = None
@@ -130,12 +140,12 @@ class XCParameterizationNetTrainer:
                                 **kwargs)
     
     def train_unimol_net(self,
-                         outer_e_ref,
-                         outer_e_init,
-                         outer_dft_prototyp_dir,
-                         outer_dft_recipe_name,
-                         outer_dft_run_option,
-                         outer_e_read_func,
+                         outer_e_ref,  # the reference energies
+                         outer_e_init, # the initial exc components
+                         outer_dft_prototyp_dir, # xc training set folders
+                         outer_dft_recipe_name,  # the adjustable parameter name
+                         outer_dft_run_option,   # the run option for the DFT jobs
+                         outer_e_read_func,      # the function to read the energy from log
                          outer_loss_func=minnesota,
                          outer_dloss_func=dminnesota,
                          outer_loss_thr=None,
@@ -147,20 +157,23 @@ class XCParameterizationNetTrainer:
                          inner_clustergen_scheme=None,
                          prefix=None,
                          **kwargs):
-        raise NotImplementedError('The overall training covering the process of '
-            'the label generation and the training of UniMol Multilabel Regression '
-            ' Net is not properly implemented yet. Presently, the training data is '
-            'not properly constructed, due to all structures share the same suite '
-            'of XC functional coefficients, so all clusters generated will also have'
-            ' the identical labels. This will drive the model to act to be a '
-            'constant function, which is not the expected behavior. A strategy to '
-            'mitigate this issue is to randomly select a subset of systems to '
-            'generate the labels, and then use the corresponding structures to '
-            'generate clusters and train the model. How good will this be is not'
-            ' tested yet. The function for randomly selecting a subset of systems '
-            'is not implemented yet, see the function uniform_random_selector in '
-            'file network/utility/preprocess.py.')
-        # one-shot label generation
+        # raise NotImplementedError('The overall training covering the process of '
+        #     'the label generation and the training of UniMol Multilabel Regression '
+        #     ' Net is not properly implemented yet. Presently, the training data is '
+        #     'not properly constructed, due to all structures share the same suite '
+        #     'of XC functional coefficients, so all clusters generated will also have'
+        #     ' the identical labels. This will drive the model to act to be a '
+        #     'constant function, which is not the expected behavior. A strategy to '
+        #     'mitigate this issue is to randomly select a subset of systems to '
+        #     'generate the labels, and then use the corresponding structures to '
+        #     'generate clusters and train the model. How good will this be is not'
+        #     ' tested yet. The function for randomly selecting a subset of systems '
+        #     'is not implemented yet, see the function uniform_random_selector in '
+        #     'file network/utility/preprocess.py.\n'
+        #     'Another strategy would be manually impose some numerical noise to the
+        #     'labels, while this is not tested, neither.')
+        
+        # one-shot label generation, but will be time-consuming
         label, loss_labelgen = classical_xc_fit(
             eref=outer_e_ref, e_init=outer_e_init,
             dft_prototyp_dir=outer_dft_prototyp_dir,
@@ -175,35 +188,119 @@ class XCParameterizationNetTrainer:
             remove_jobdir_after_run=kwargs.get('remove_jobdir_after_run', True),
         )
         print(f'The label is generated with error: {loss_labelgen:>10.4e}', flush=True)
-        data_set = build_dataset(
+        dataset = abacus_to_unimol_dataset(
             xdata=outer_dft_prototyp_dir,
             ydata=[label for _ in range(len(outer_dft_prototyp_dir))],
-            walk=False,
-            mode='abacus',
             cluster_truncation=inner_clustergen_scheme
         )
         return self.inner_train_unimol_net(
-            dataset=data_set,
+            dataset=dataset,
             inner_epochs=inner_epochs,
             inner_batchsize=inner_batchsize,
             prefix=prefix,
             **kwargs
         )
     
-    def inner_train_xcp_net(self):
-        raise NotImplementedError('The inner training of XCParameterizationNet '
-                                  'is not implemented yet')
-    
-    def train_xcp_net(self,):
-        raise NotImplementedError('The training of XCParameterizationNet '
-                                  'is not implemented yet')
+    def inner_train_xcp_net(self,
+                            dataset,
+                            inner_epochs=10,
+                            inner_batchsize=16,
+                            prefix=None,
+                            **kwargs):
+        self.model.train(data=dataset,
+                         epochs=inner_epochs,
+                         batch_size=inner_batchsize,
+                         f_loss=tminnesota,
+                         save_path=f'XCPNTrainer-{prefix}',
+                         **kwargs)
+
+    def train_xcp_net(self,
+                      outer_e_ref,
+                      outer_e_init,
+                      outer_dft_prototyp_dir,
+                      outer_dft_recipe_name,
+                      outer_dft_run_option,
+                      outer_e_read_func,
+                      outer_maxiter=10,
+                      label_init=None,
+                      label_thr=None,
+                      inner_epochs=5,
+                      inner_batchsize=16,
+                      inner_descgen=None,
+                      prefix=None,
+                      **kwargs):
+        '''
+        the xcpnet is for handling a more complicated case, where the
+        energy terms of XC are the functionals of the inner train label
+        (the XC coefficients).
+        
+        Algorithm
+        ---------
+        1. with given outer_e_ref and outer_e_init, generate the dataset
+           and train the xcpnet model with some epochs
+        2. after the inner training finished, get the coefficients and
+           perform DFT calculations with the new set of coefficients,
+           obtain the new outer_e_ref and outer_e_init
+        3. repeat the step 1 and 2 until the coefficients converges
+        4. save the trained model
+        '''
+        coefs_ = [0.0 for _ in outer_dft_prototyp_dir]
+        dcoef = np.inf
+        outer_jiter = 0
+        
+        msg = f'{"ITER":>4s} {"Convergence":>15s} {"TIME/s":>10s}'
+        print('', flush=True)
+        print(msg, flush=True)
+        
+        time_ = time.time()
+        # generate the initial dataset
+        dataset = abacus_to_xcpnet_dataset(
+            xdata=outer_dft_prototyp_dir,
+            ydata=outer_e_ref,
+            f_descmodel=inner_descgen
+        )
+        print(f'{"Data initialization":>20s} {time.time() - time_:>10.4f}', flush=True)
+        time_ = time.time()
+        
+        while (outer_jiter <= outer_maxiter) and \
+              (True if label_thr is None else dcoef > label_thr):
+            # step 1: generate the dataset and train the xcpnet model
+
+            self.inner_train_xcp_net(
+                dataset=dataset,
+                inner_epochs=inner_epochs,
+                inner_batchsize=inner_batchsize,
+                prefix=prefix,
+                **kwargs
+            ) # it would be better to train in a fine-tune manner
+            
+            # step 2: get the coefficients and perform DFT calculations
+            coefs = self.model.eval(data=dataset)
+            dataset['e'] = [calc_exc_terms(
+                job,
+                outer_dft_run_option,
+                {outer_dft_recipe_name: coef},
+                f_ener_reader=outer_e_read_func,
+                remove_after_run=kwargs.get('remove_jobdir_after_run', True))
+            for job, coef in zip(build_ener_calculator(outer_dft_prototyp_dir), coefs)]
+            
+            # step 3: calculate the loss
+            dcoef = np.mean([np.linalg.norm(coef - coef_) 
+                             for coef, coef_ in zip(coefs, coefs_)])
+            coefs_ = coefs.copy()
+            
+            # print the information
+            msg = f'{outer_jiter:>4d} {dcoef:>15.4e} {time.time() - time_:>10.4f}'
+            print(msg, flush=True)
+            time_ = time.time()
+            
+            # update the loop control variables
+            outer_jiter += 1
+        
     
     def inner_eval(self, dataset):
         if self.model is None:
             raise RuntimeError('No backend model is assigned')
-        if self.model_backend != 'unimol':
-            raise NotImplementedError('The evaluation employing XCParameterizationNet '
-                                      'as the inner training kernel is not implemented yet')
         return self.model.eval(data=dataset)
     
     def train(self,
@@ -225,8 +322,7 @@ class XCParameterizationNetTrainer:
         Parameters
         ----------
         dataset : any
-            see function XCParameterizationNet.build_dataset for more
-            information
+            the dataset to be used for training.
         outer_fdft : callable
             the function for calculating the energy components with
             given parameters. The function must have two and only

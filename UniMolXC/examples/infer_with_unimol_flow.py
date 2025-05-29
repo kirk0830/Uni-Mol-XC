@@ -8,7 +8,7 @@ import unittest
 import numpy as np
 
 from UniMolXC.network.trainer import XCParameterizationNetTrainer
-from UniMolXC.network.utility.preprocess import build_dataset
+from UniMolXC.network.kernel._unimol import build_dataset_from_abacus
 
 class TestInferWithUniMolFlow(unittest.TestCase):
     def setUp(self):
@@ -21,12 +21,10 @@ class TestInferWithUniMolFlow(unittest.TestCase):
             model={'model_restart': 'XCPNTrainer-test'},
         )
         
-        dataset = build_dataset(
+        dataset = build_dataset_from_abacus(
             xdata=[os.path.join(self.testfiles, 'scf-unfinished')],
             ydata=[{'Zn': [1.0], 'Y': [5.0], 'S': [0.0]}],
-            mode='abacus',
             cluster_truncation={'Zn': 5.0, 'Y': 3.0, 'S': 3.0},
-            walk=False
         )
         
         res = mytrainer.inner_eval(dataset=dataset)

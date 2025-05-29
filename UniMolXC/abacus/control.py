@@ -21,6 +21,7 @@ from UniMolXC.abacus.struio import read_stru as read_stru_
 from UniMolXC.abacus.struio import write_stru
 from UniMolXC.abacus.kptio import read as read_kpt
 from UniMolXC.abacus.kptio import write as write_kpt
+from UniMolXC.abacus.logio import read_energy
 from UniMolXC.utility.units import convert_length_unit
 # from UniMolXC.abacus.remote import submit
 
@@ -387,6 +388,28 @@ class AbacusJob:
             raise NotImplementedError('remote run is not implemented yet.')
             assert isinstance(remote, dict)
             assert remote['mode'] == 'abacustest' # only support abacustest
+
+    def read_exc_terms(self, unit='eV') -> list:
+        '''read the energy terms from the log file
+        
+        Parameters
+        ----------
+        unit : str
+            the unit of the energy, default is 'eV'
+        
+        Returns
+        -------
+        list of list of float
+            the energy terms, indexed with [iframe][iterm] -> float
+        '''
+        if self.flog is None:
+            raise RuntimeError('the function `init_as_finished` should '
+                               'be called before calling this function.')
+        raise NotImplementedError('the function `read_exc_terms` is not implemented '
+            'yet due to the unfinished development at ABACUS side. One must first '
+            'clarify the energy terms in the ABACUS log file.')
+        # it is recommended to extend the ABACUS first on a forked repo
+        return read_energy(self.flog, unit=unit)
 
 class AbacusJobTest(unittest.TestCase):
     

@@ -233,8 +233,8 @@ def fit(eref,
         flog=None):
     '''
     fit the target reference energies by iteratively optimizing
-    the coefficients of the energy terms. After the optimization
-    being converged, the energy terms will be re-evaluated
+    the coefficients of the XC energy terms. After the optimization
+    being converged, the XC energy terms will be re-evaluated
     with the newly obtained coefficients. This process will be
     proceed till convergence is reached.
     
