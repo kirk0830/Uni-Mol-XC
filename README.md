@@ -2,7 +2,7 @@
 
 ## Introduction
 
-wabiwaibibabo
+This code interfaces with Uni-Mol and learns properties, such as functional parameters and Hubbard-U values, from geometries.
 
 ## Installation
 
